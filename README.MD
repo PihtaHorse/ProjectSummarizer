@@ -2,7 +2,7 @@
 
 ProjectSummarizer is a script that consolidates the structure and optionally the contents of a project directory into a single output file.
 
-The tool integrates with popular LLM platforms that support project analysis:
+You can use the generated file with LLM platforms that support project analysis:
 - [Claude projects](https://claude.ai/projects)
 - [Projects tab in ChatGPT](https://chatgpt.com)
 
