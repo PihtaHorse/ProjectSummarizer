@@ -114,4 +114,4 @@ Desktop.ini
 *.tmp
 
 # Typical names for outupt files
-*.txt
+summary.txt

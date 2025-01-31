@@ -3,6 +3,12 @@ import fnmatch
 import os
 import logging
 import nbformat
+from token_handlers.openai_token_handler import get_openai_token_count
+from token_handlers.anthropic_token_handler import get_anthropic_token_count
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 
@@ -70,38 +76,94 @@ def collect_file_paths(directory, global_ignore_patterns):
     return file_paths
 
 
-def process_directory(directory, ignore_patterns, outfile, special_character, only_structure=False):
+def process_directory(directory, ignore_patterns, outfile, special_character, only_structure=False, max_file_size=5 * 1024 * 1024):
+    # Collect file paths
     file_paths = collect_file_paths(directory, ignore_patterns)
-    # Write the project structure at the beginning
+
+    # Write the project structure
     outfile.write(f"Files:\n{special_character}\n")
     for relative_path in file_paths:
         outfile.write(f" {relative_path}\n")
-    outfile.write(f"{special_character}\n\n")  # Extra newline for separation
+    outfile.write(f"{special_character}\n\n")
 
     if only_structure:
+        logging.info("Only structure output is enabled. Skipping file content processing.")
         return
 
-    # Append file contents
+    # Process and write file contents
     for relative_path in file_paths:
         file_path = os.path.join(directory, relative_path)
+        file_size = os.path.getsize(file_path)
+
+        if file_size > max_file_size:
+            logging.warning(f"Skipping {file_path}: file size exceeds {max_file_size} bytes")
+            continue
+
         logging.info(f"Processing {file_path}")
         if file_path.endswith('.ipynb'):
             content = extract_notebook_content(file_path)
         else:
             with open(file_path, "r", encoding='utf-8') as infile:
                 content = infile.read()
+
+        # Write the file content to the output file
         write_file_content(outfile, relative_path, special_character, content)
 
 
-def summarize_project(directory, special_character, output_file, global_ignore_patterns, only_structure=False):
+def summarize_project(directory, special_character, output_file, global_ignore_patterns, only_structure=False, max_file_size=5 * 1024 * 1024, token_models=None):
+    if token_models is None:
+        token_models = []
+
+    # Step 1: Write project structure and contents to output file
     global_ignore_patterns = list(global_ignore_patterns) + parse_ignore_files(directory)
     with open(output_file, "w", encoding='utf-8') as outfile:
-        process_directory(directory, global_ignore_patterns, outfile, special_character, only_structure=only_structure)
+        process_directory(directory, global_ignore_patterns, outfile, special_character, only_structure=only_structure, max_file_size=max_file_size)
 
-    # Count the number of characters in the output file
+    # Step 2: Perform final counts on the entire output file
     with open(output_file, "r", encoding='utf-8') as outfile:
         content = outfile.read()
-        logging.info(f"Total number of characters in the summarized document: {len(content)}")
+
+    # Count characters
+    total_character_count = len(content)
+
+    # Count tokens for each model
+    total_token_counts = {}
+    for model in token_models:
+        if model == "gpt-4o":
+            total_token_counts["gpt-4o"] = get_openai_token_count(content, "gpt-4o")
+        elif model == "claude-3-5-sonnet-20241022":
+            total_token_counts["claude-3-5-sonnet-20241022"] = get_anthropic_token_count(
+                [{"role": "user", "content": content}], "claude-3-5-sonnet-20241022"
+            )
+
+    # Step 3: Log the aggregated results
+    logging.info(f"Total Character Count: {total_character_count}")
+    for model, token_count in total_token_counts.items():
+        logging.info(f"Total Token Count ({model}): {token_count}")
+
+
+def get_all_content_counts(content: str, models: list) -> dict:
+    """
+    Calculates character count and token counts for specified models.
+
+    Args:
+        content: The input text content.
+        models: A list of model names for which token counts should be calculated.
+
+    Returns:
+        A dictionary with character count and token counts.
+    """
+    counts = {"characters": len(content)}
+
+    if "gpt-4o" in models:
+        counts["gpt-4o"] = get_openai_token_count(content, "gpt-4o")
+
+    if "claude-3-5-sonnet-20241022" in models:
+        counts["claude-3-5-sonnet-20241022"] = get_anthropic_token_count(
+            [{"role": "user", "content": content}], "claude-3-5-sonnet-20241022"
+        )
+
+    return counts
 
 
 if __name__ == "__main__":
@@ -132,6 +194,22 @@ if __name__ == "__main__":
         action="store_true",
         help="If set, only output the project structure without file contents"
     )
+
+    parser.add_argument(
+        "--max_file_size",
+        type=int,
+        default=5 * 1024 * 1024,
+        help="Maximum file size (in bytes) to include in the summary. Default is 5 MB."
+    )
+
+    parser.add_argument(
+        "--count_tokens",
+        type=str,
+        nargs="*",
+        choices=["gpt-4o", "claude-3-5-sonnet-20241022"],
+        help="Specify one or more models to count tokens for (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022')."
+    )
+    
     args = parser.parse_args()
 
     summarize_project(
@@ -139,5 +217,7 @@ if __name__ == "__main__":
         args.special_character, 
         args.output_file, 
         args.ignore_patterns.split(","), 
-        only_structure=args.only_structure
+        only_structure=args.only_structure,
+        max_file_size=args.max_file_size,
+        token_models=args.count_tokens or []
     )

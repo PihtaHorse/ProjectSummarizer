@@ -1,6 +1,10 @@
 # ProjectSummarizer
 ProjectSummarizer is a script that consolidates the structure and optionally the contents of a project directory into a single output file. It supports various ignore patterns, can parse .gitignore and .dockerignore files, and can handle Jupyter notebooks by extracting their code and markdown cells.
 
+It can be useful for creating a summary of a project to provide your favorite LLM or projects feature from some LLM providers:
+- [Claude projects](https://claude.ai/projects)
+- projects tab in [ChatGPT](https://chatgpt.com)
+
 ## Features
 - Recursively lists all files and directories, writing their paths to an output file.
 - Optionally includes the contents of each file.
@@ -30,12 +34,12 @@ python summaraize.py
 
 Arguments:
 
---directory (required): The path to the project directory to summarize.
---output_file (required): The file to write the project summary to.
---special_character (optional): The delimiter for file contents (default: ```).
---ignore_patterns (optional): Comma-separated list of patterns to ignore.
+- directory (required): The path to the project directory to summarize.
+- output_file (required): The file to write the project summary to.
+- special_character (optional): The delimiter for file contents (default: ```).
+- ignore_patterns (optional): Comma-separated list of patterns to ignore.
 Defaults to: .git,*.gitignore,*.dockerignore,*.png,*.jpg
---only_structure (optional, flag): If provided, only the structure (list of files) is written, without file contents.
+- only_structure (optional, flag): If provided, only the structure (list of files) is written, without file contents.
 Examples
 Summarize a project including file contents:
 
