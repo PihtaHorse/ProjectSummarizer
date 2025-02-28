@@ -1,6 +1,7 @@
 # ProjectSummarizer
 
 ProjectSummarizer is a script that consolidates the structure and optionally the contents of a project directory into a single output file.
+Script alternative for [gitingest](https://gitingest.com/).
 
 You can use the generated file with LLM platforms that support project analysis:
 - [Claude projects](https://claude.ai/projects)
