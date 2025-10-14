@@ -7,6 +7,7 @@ from prettytable import PrettyTable
 
 from projectsummarizer.core.ignore import collect_file_paths
 from projectsummarizer.core.analysis import compute_extension_stats, compute_token_stats_by_extension
+from projectsummarizer.constants import DEFAULT_IGNORE_PATTERNS, BINARY_IGNORE_PATTERNS
 
 
 load_dotenv()
@@ -28,8 +29,18 @@ def main():
     parser.add_argument(
         "--ignore_patterns",
         type=str,
-        default=".git,*.gitignore,*.dockerignore,*.png,*.jpg",
-        help="Comma-separated list of patterns to ignore",
+        default="",
+        help="Comma-separated list of additional patterns to ignore (added to defaults)",
+    )
+    parser.add_argument(
+        "--include-binary",
+        action="store_true",
+        help="Include binary file types (images, videos, audio, archives, executables, etc.) - by default these are excluded",
+    )
+    parser.add_argument(
+        "--no-defaults",
+        action="store_true",
+        help="Don't use default ignore patterns, only use patterns from --ignore_patterns",
     )
     parser.add_argument(
         "--list_extensions",
@@ -47,7 +58,21 @@ def main():
     )
     args = parser.parse_args()
 
-    global_patterns = args.ignore_patterns.split(",") if args.ignore_patterns else []
+    # Build ignore patterns based on flags
+    global_patterns = []
+    
+    if not args.no_defaults:
+        # Include default patterns (security, cache, etc.)
+        global_patterns.extend(DEFAULT_IGNORE_PATTERNS)
+        # Include binary patterns by default
+        global_patterns.extend(BINARY_IGNORE_PATTERNS)
+    elif args.include_binary:
+        # If no-defaults but include-binary, only add binary patterns
+        global_patterns.extend(BINARY_IGNORE_PATTERNS)
+    
+    # Add user-specified patterns
+    if args.ignore_patterns:
+        global_patterns.extend(args.ignore_patterns.split(","))
 
     # all files (no ignore files)
     all_files = collect_file_paths(args.directory, [], include_ignore_files=False)

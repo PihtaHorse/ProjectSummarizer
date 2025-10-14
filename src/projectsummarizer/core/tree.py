@@ -38,9 +38,10 @@ def build_augmented_tree(
     models: List[str],
 ) -> Dict[str, Any]:
     root: Dict[str, Any] = {}
+    
+    # First pass: create tree structure
     for rel in rel_paths:
         parts = rel.split("/")
-        # create nodes and record file entry + file meta
         node = root
         for idx, part in enumerate(parts):
             is_file = idx == len(parts) - 1
@@ -49,25 +50,59 @@ def build_augmented_tree(
                 node[("__file_meta__", part)] = metrics.get(rel, {"size": 0, "tokens": {}})
             else:
                 node = node.setdefault(part, {})
+                node.setdefault("__agg__", {"size": 0, "tokens": {}})
 
-        # bubble up aggregates along the path
+    # Second pass: aggregate metrics from files up to root
+    for rel in rel_paths:
+        parts = rel.split("/")
+        file_metrics = metrics.get(rel, {"size": 0, "tokens": {}})
+        
+        # Walk up the path and add this file's metrics to all parent directories
         node = root
         for idx, part in enumerate(parts):
             is_file = idx == len(parts) - 1
-            if is_file:
-                dir_node = node
-            else:
-                dir_node = node.setdefault(part, {})
-            agg = dir_node.setdefault("__agg__", {"size": 0, "tokens": {}})
-            file_metrics = metrics.get(rel, {"size": 0, "tokens": {}})
-            agg["size"] += int(file_metrics.get("size", 0))
-            if models:
-                for m, v in file_metrics.get("tokens", {}).items():
-                    agg["tokens"][m] = agg["tokens"].get(m, 0) + int(v)
             if not is_file:
-                node = dir_node
+                node = node[part]
+                agg = node.setdefault("__agg__", {"size": 0, "tokens": {}})
+                agg["size"] += int(file_metrics.get("size", 0))
+                if models:
+                    for m, v in file_metrics.get("tokens", {}).items():
+                        agg["tokens"][m] = agg["tokens"].get(m, 0) + int(v)
 
+    # Initialize root aggregate
     root.setdefault("__agg__", {"size": 0, "tokens": {}})
+    
+    # Third pass: sum up all child aggregates to root
+    def aggregate_to_root(node):
+        total_size = 0
+        total_tokens = {m: 0 for m in models} if models else {}
+        
+        # Sum direct files
+        for key, value in node.items():
+            if isinstance(key, tuple) and key[0] == "__file_meta__":
+                total_size += int(value.get("size", 0))
+                if models:
+                    for m, v in value.get("tokens", {}).items():
+                        total_tokens[m] = total_tokens.get(m, 0) + int(v)
+        
+        # Sum child directories
+        for key, value in node.items():
+            if key not in ("__files__", "__agg__") and not (isinstance(key, tuple) and key[0] == "__file_meta__"):
+                child_size, child_tokens = aggregate_to_root(value)
+                total_size += child_size
+                if models:
+                    for m, v in child_tokens.items():
+                        total_tokens[m] = total_tokens.get(m, 0) + v
+        
+        # Update this node's aggregate
+        agg = node.setdefault("__agg__", {"size": 0, "tokens": {}})
+        agg["size"] = total_size
+        if models:
+            agg["tokens"] = total_tokens
+        
+        return total_size, total_tokens
+    
+    aggregate_to_root(root)
     return root
 
 

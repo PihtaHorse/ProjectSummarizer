@@ -4,6 +4,7 @@ import logging
 import nbformat
 from projectsummarizer.core.ignore import parse_ignore_files as core_parse_ignore_files, collect_file_paths as core_collect_file_paths
 from projectsummarizer.core.tokens import get_all_content_counts
+from projectsummarizer.constants import DEFAULT_IGNORE_PATTERNS, BINARY_IGNORE_PATTERNS
 from dotenv import load_dotenv
 
 
@@ -137,8 +138,18 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ignore_patterns",
         type=str,
-        default=".git,*.gitignore,*.dockerignore,*.png,*.jpg",
-        help="Comma-separated list of patterns to ignore",
+        default="",
+        help="Comma-separated list of additional patterns to ignore (added to defaults)",
+    )
+    parser.add_argument(
+        "--include-binary",
+        action="store_true",
+        help="Include binary file types (images, videos, audio, archives, executables, etc.) - by default these are excluded",
+    )
+    parser.add_argument(
+        "--no-defaults",
+        action="store_true",
+        help="Don't use default ignore patterns, only use patterns from --ignore_patterns",
     )
     parser.add_argument(
         "--only_structure",
@@ -163,11 +174,27 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
+    # Build ignore patterns based on flags
+    global_patterns = []
+    
+    if not args.no_defaults:
+        # Include default patterns (security, cache, etc.)
+        global_patterns.extend(DEFAULT_IGNORE_PATTERNS)
+        # Include binary patterns by default
+        global_patterns.extend(BINARY_IGNORE_PATTERNS)
+    elif args.include_binary:
+        # If no-defaults but include-binary, only add binary patterns
+        global_patterns.extend(BINARY_IGNORE_PATTERNS)
+    
+    # Add user-specified patterns
+    if args.ignore_patterns:
+        global_patterns.extend(args.ignore_patterns.split(","))
+
     summarize_project(
         args.directory, 
         args.special_character, 
         args.output_file, 
-        args.ignore_patterns.split(","), 
+        global_patterns, 
         only_structure=args.only_structure,
         max_file_size=args.max_file_size,
         token_models=args.count_tokens or []
