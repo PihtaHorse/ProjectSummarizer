@@ -136,15 +136,16 @@ def main():
     tree = build_augmented_tree(file_paths, metrics, models)
     root_agg = tree.get("__agg__", {"size": 0, "tokens": {}})
 
-    # print tree
-    print(print_augmented_tree(tree, models))
-
-    # totals
-    logging.info(f"Total files: {len(file_paths)}")
-    logging.info(f"Total size (bytes): {root_agg.get('size', 0)}")
+    # print totals first
+    print(f"Total files: {len(file_paths)}")
+    print(f"Total size (bytes): {root_agg.get('size', 0)}")
     if models:
         for m in models:
-            logging.info(f"Total Token Count ({m}): {root_agg.get('tokens', {}).get(m, 0)}")
+            print(f"Total Token Count ({m}): {root_agg.get('tokens', {}).get(m, 0)}")
+    print()  # empty line separator
+
+    # print tree
+    print(print_augmented_tree(tree, models))
 
 
 if __name__ == "__main__":

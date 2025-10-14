@@ -12,6 +12,7 @@ nbformat = "^5.10.4"
 tiktoken = "^0.8.0"
 anthropic = "^0.45.2"
 python-dotenv = "^1.0.1"
+prettytable = "^3.9.0"
 
 
 [tool.poetry.group.dev.dependencies]

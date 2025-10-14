@@ -3,6 +3,7 @@ import logging
 import os
 from dotenv import load_dotenv
 from typing import List
+from prettytable import PrettyTable
 
 from projectsummarizer.core.ignore import collect_file_paths
 from projectsummarizer.core.analysis import compute_extension_stats, compute_token_stats_by_extension
@@ -77,18 +78,30 @@ def main():
 
     # print table
     has_tokens = bool(args.count_tokens)
-    header = ["extension", "count", "size"] + (args.count_tokens if has_tokens else [])
-    print("\t".join(header))
-    for ext in sorted(selection.keys()):
+    
+    # Create table
+    table = PrettyTable()
+    table.field_names = ["extension", "count", "size"] + (args.count_tokens if has_tokens else [])
+    table.align["extension"] = "l"
+    table.align["count"] = "r"
+    table.align["size"] = "r"
+    if has_tokens:
+        for m in args.count_tokens:
+            table.align[m] = "r"
+    
+    # Add rows (sorted by size descending)
+    for ext in sorted(selection.keys(), key=lambda x: selection[x]["size"], reverse=True):
         row = [
             ext or "(noext)",
-            str(selection[ext]["count"]),
-            str(selection[ext]["size"]),
+            selection[ext]["count"],
+            format_size(selection[ext]["size"]),
         ]
         if has_tokens:
             for m in args.count_tokens:
-                row.append(str(tokens_by_ext.get(ext, {}).get(m, 0)))
-        print("\t".join(row))
+                row.append(tokens_by_ext.get(ext, {}).get(m, 0))
+        table.add_row(row)
+    
+    print(table)
 
     # suggest patterns
     patterns = []
