@@ -1,5 +1,5 @@
 import os
-from ps_core.ignore import collect_file_paths, parse_ignore_files
+from projectsummarizer.core.ignore import collect_file_paths, parse_ignore_files
 
 
 def test_collect_file_paths_respects_patterns():

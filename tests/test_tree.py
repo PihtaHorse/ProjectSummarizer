@@ -1,4 +1,4 @@
-from ps_core.tree import build_tree_structure, print_tree
+from projectsummarizer.core.tree import build_tree_structure, print_tree
 
 
 def test_build_and_print_tree():

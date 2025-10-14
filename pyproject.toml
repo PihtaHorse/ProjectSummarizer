@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "projectsummarizer"
 version = "0.1.0"
-description = ""
+description = "A tool to summarize project files with tree view and extension analysis"
 authors = ["e_mamul <eugene@pufin.id>"]
 readme = "README.md"
-package-mode = false
+packages = [{include = "projectsummarizer", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -14,7 +14,7 @@ anthropic = "^0.45.2"
 python-dotenv = "^1.0.1"
 
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"
 
 

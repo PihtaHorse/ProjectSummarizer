@@ -1,6 +1,6 @@
 from typing import List, Dict
-from token_handlers.openai_token_handler import get_openai_token_count
-from token_handlers.anthropic_token_handler import get_anthropic_token_count
+from ..token_handlers.openai_token_handler import get_openai_token_count
+from ..token_handlers.anthropic_token_handler import get_anthropic_token_count
 
 
 def get_all_content_counts(content: str, models: List[str]) -> Dict[str, int]:

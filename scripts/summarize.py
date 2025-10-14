@@ -1,10 +1,9 @@
 import argparse
-import fnmatch
 import os
 import logging
 import nbformat
-from ps_core.ignore import parse_ignore_files as core_parse_ignore_files, collect_file_paths as core_collect_file_paths
-from ps_core.tokens import get_all_content_counts
+from projectsummarizer.core.ignore import parse_ignore_files as core_parse_ignore_files, collect_file_paths as core_collect_file_paths
+from projectsummarizer.core.tokens import get_all_content_counts
 from dotenv import load_dotenv
 
 
@@ -21,7 +20,7 @@ def parse_ignore_files(directory):
 
 def should_ignore(file_path, top_level_dir, ignore_patterns):
     # Kept for backward compatibility if imported elsewhere
-    from ps_core.ignore import should_ignore as core_should_ignore
+    from projectsummarizer.core.ignore import should_ignore as core_should_ignore
     return core_should_ignore(file_path, top_level_dir, ignore_patterns)
 
 
@@ -114,7 +113,7 @@ def summarize_project(directory, special_character, output_file, global_ignore_p
 
 def get_all_content_counts(content: str, models: list) -> dict:
     # Backward compatibility shim; delegate to core implementation
-    from ps_core.tokens import get_all_content_counts as core_get_all_content_counts
+    from projectsummarizer.core.tokens import get_all_content_counts as core_get_all_content_counts
     return core_get_all_content_counts(content, models)
 
 

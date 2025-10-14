@@ -1,5 +1,5 @@
 import os
-from ps_core.analysis import compute_extension_stats, classify_extensions
+from projectsummarizer.core.analysis import compute_extension_stats, classify_extensions
 
 
 def test_compute_extension_stats():

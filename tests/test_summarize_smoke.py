@@ -9,7 +9,7 @@ def test_summarize_structure_only(tmp_path):
 
     cmd = [
         sys.executable,
-        os.path.abspath("summarize.py"),
+        os.path.abspath("scripts/summarize.py"),
         "--directory",
         str(root),
         "--output_file",

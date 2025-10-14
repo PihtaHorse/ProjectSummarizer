@@ -162,3 +162,24 @@ python ignore_helper.py --directory ./my_project --list_extensions effective --c
 # Provide extra patterns to refine the result; copy the printed pattern list for summarize.py
 python ignore_helper.py --directory ./my_project --ignore_patterns ".git,*.png,*.jpg,*.pdf" --list_extensions effective
 ```
+
+## Try it on this repository
+
+Use these copy-pasteable commands to run against this repo:
+
+```sh
+# Tree view for this repo
+python scripts/tree_stats.py --directory .
+
+# Extension stats (effective) for this repo
+python scripts/ignore_helper.py --directory . --list_extensions effective
+
+# Summarize this repo (structure only)
+python scripts/summarize.py --directory . --output_file ./summary.txt --only_structure
+
+# Summarize with common ignores
+python scripts/summarize.py --directory . --output_file ./summary.txt --ignore_patterns ".git,*.png,*.jpg,*.pdf,**/__pycache__/*"
+
+# Optional: include token counts (requires keys in env/.env)
+python scripts/tree_stats.py --directory . --count_tokens gpt-4o
+```

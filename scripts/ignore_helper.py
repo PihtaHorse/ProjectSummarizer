@@ -4,8 +4,8 @@ import os
 from dotenv import load_dotenv
 from typing import List
 
-from ps_core.ignore import collect_file_paths
-from ps_core.analysis import compute_extension_stats, compute_token_stats_by_extension
+from projectsummarizer.core.ignore import collect_file_paths
+from projectsummarizer.core.analysis import compute_extension_stats, compute_token_stats_by_extension
 
 
 load_dotenv()
