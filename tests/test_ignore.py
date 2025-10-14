@@ -1,22 +1,21 @@
 import os
-from ps_core.ignore import collect_file_paths, should_ignore, parse_ignore_files
+from ps_core.ignore import collect_file_paths, parse_ignore_files
 
 
-def test_collect_file_paths_respects_patterns(tmp_path):
-    root = tmp_path
-    (root / "a").mkdir()
-    (root / "a" / "keep.txt").write_text("hi", encoding="utf-8")
-    (root / "a" / "skip.bin").write_text("xx", encoding="utf-8")
+def test_collect_file_paths_respects_patterns():
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "sample_project"))
+    files_no_pattern = collect_file_paths(root, [], include_ignore_files=False)
+    assert any(p.endswith("assets/blob.bin") for p in files_no_pattern)
 
-    files = collect_file_paths(str(root), ["*.bin"], include_ignore_files=False)
-    assert "a/keep.txt" in files
-    assert "a/skip.bin" not in files
+    files_ignore_bin = collect_file_paths(root, ["*.bin"], include_ignore_files=False)
+    assert not any(p.endswith("assets/blob.bin") for p in files_ignore_bin)
+    # sanity: still has python file
+    assert any(p.endswith("src/main.py") for p in files_ignore_bin)
 
 
-def test_parse_ignore_files_reads_gitignore(tmp_path):
-    root = tmp_path
-    (root / ".gitignore").write_text("*.png\n# comment\n\n*.jpg", encoding="utf-8")
-    patterns = parse_ignore_files(str(root))
-    assert "*.png" in patterns and "*.jpg" in patterns
+def test_parse_ignore_files_reads_gitignore():
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "sample_project"))
+    patterns = parse_ignore_files(root)
+    assert "*.bin" in patterns
 
 

@@ -4,10 +4,8 @@ import sys
 
 
 def test_summarize_structure_only(tmp_path):
-    root = tmp_path
-    (root / "src").mkdir()
-    (root / "src" / "main.py").write_text("print('ok')", encoding="utf-8")
-    out_file = root / "summary.txt"
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "sample_project"))
+    out_file = os.path.join(str(tmp_path), "summary.txt")
 
     cmd = [
         sys.executable,
@@ -20,8 +18,9 @@ def test_summarize_structure_only(tmp_path):
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True)
     assert proc.returncode == 0
-    assert out_file.exists()
-    content = out_file.read_text(encoding="utf-8")
+    assert os.path.exists(out_file)
+    with open(out_file, "r", encoding="utf-8") as f:
+        content = f.read()
     assert "src/main.py" in content
 
 
