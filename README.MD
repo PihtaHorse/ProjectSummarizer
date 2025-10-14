@@ -104,3 +104,61 @@ Use custom ignore patterns:
 ```sh
 python summarize.py --directory ./my_project --ignore_patterns ".git,*.gitignore,*.dockerignore,*.png,*.jpg,*.json,folder/to/exclude/*"
 ```
+
+## Additional CLIs
+
+Two helper CLIs are included to make exploration and ignore pattern generation faster.
+
+### Tree view with totals: `tree_stats.py`
+
+Prints folder tree and totals; optionally counts tokens across all included files.
+
+```sh
+python tree_stats.py --directory <DIRECTORY> [--ignore_patterns <PATTERNS>] [--count_tokens gpt-4o claude-3-5-sonnet-20241022]
+```
+
+Examples:
+
+```sh
+# Basic
+python tree_stats.py --directory ./my_project
+
+# With additional ignore patterns
+python tree_stats.py --directory ./my_project --ignore_patterns ".git,*.png,*.jpg,*.pdf,**/__pycache__/*"
+
+# With token counts (requires API keys in environment/.env)
+python tree_stats.py --directory ./my_project --count_tokens gpt-4o claude-3-5-sonnet-20241022
+```
+
+### Extension stats and ignore helper: `ignore_helper.py`
+
+Lists extensions and prints a copy-pasteable ignore pattern list. It outputs a tab-separated table: `extension`, `count`, `size`, and, if `--count_tokens` is provided, one column per model with total tokens for that extension.
+
+```sh
+python ignore_helper.py --directory <DIRECTORY> [--ignore_patterns <PATTERNS>] [--list_extensions all|effective|removed] [--count_tokens gpt-4o claude-3-5-sonnet-20241022]
+```
+
+Flags:
+- `--list_extensions`: which set to show
+  - `all`: all files (no ignore files or patterns applied)
+  - `effective` (default): files after applying `.gitignore`, `.dockerignore`, and `--ignore_patterns`
+  - `removed`: files/extensions excluded by the ignore rules
+
+Examples:
+
+```sh
+# Effective extensions after ignores
+python ignore_helper.py --directory ./my_project --list_extensions effective
+
+# All extensions (raw view)
+python ignore_helper.py --directory ./my_project --list_extensions all
+
+# Removed extensions
+python ignore_helper.py --directory ./my_project --list_extensions removed
+
+# Include token counts per extension
+python ignore_helper.py --directory ./my_project --list_extensions effective --count_tokens gpt-4o
+
+# Provide extra patterns to refine the result; copy the printed pattern list for summarize.py
+python ignore_helper.py --directory ./my_project --ignore_patterns ".git,*.png,*.jpg,*.pdf" --list_extensions effective
+```

@@ -3,8 +3,8 @@ import fnmatch
 import os
 import logging
 import nbformat
-from token_handlers.openai_token_handler import get_openai_token_count
-from token_handlers.anthropic_token_handler import get_anthropic_token_count
+from ps_core.ignore import parse_ignore_files as core_parse_ignore_files, collect_file_paths as core_collect_file_paths
+from ps_core.tokens import get_all_content_counts
 from dotenv import load_dotenv
 
 
@@ -16,24 +16,13 @@ IGNORE_FILES = [".gitignore", ".dockerignore"]
 
 
 def parse_ignore_files(directory):
-    ignore_patterns = []
-    for ignore_file in IGNORE_FILES:
-        ignore_path = os.path.join(directory, ignore_file)
-        if os.path.exists(ignore_path):
-            with open(ignore_path, "r", encoding='utf-8') as file:
-                ignore_patterns.extend(
-                    line.strip() for line in file if line.strip() and not line.startswith("#")
-                )
-    return ignore_patterns
+    return core_parse_ignore_files(directory)
 
 
 def should_ignore(file_path, top_level_dir, ignore_patterns):
-    # Always compute relative paths from the top-level directory
-    relative_path = os.path.relpath(file_path, top_level_dir).replace(os.sep, "/")
-    for pattern in ignore_patterns:
-        if fnmatch.fnmatchcase(relative_path, pattern):
-            return True
-    return False
+    # Kept for backward compatibility if imported elsewhere
+    from ps_core.ignore import should_ignore as core_should_ignore
+    return core_should_ignore(file_path, top_level_dir, ignore_patterns)
 
 
 def write_file_content(outfile, name, special_character, content):
@@ -56,24 +45,7 @@ def extract_notebook_content(notebook_path):
 
 
 def collect_file_paths(directory, global_ignore_patterns):
-    file_paths = []
-    # Pre-parse ignore files from the top-level directory
-    top_level_ignore_patterns = global_ignore_patterns + parse_ignore_files(directory)
-
-    for root, dirs, files in os.walk(directory, topdown=True):
-        # Combine top-level patterns with local ignore files from the current root
-        local_ignore_patterns = top_level_ignore_patterns + parse_ignore_files(root)
-        # Filter directories
-        dirs[:] = [
-            d for d in dirs if not should_ignore(os.path.join(root, d), directory, local_ignore_patterns)
-        ]
-        # Filter files
-        for name in files:
-            file_path = os.path.join(root, name)
-            if not should_ignore(file_path, directory, local_ignore_patterns):
-                rel_path = os.path.relpath(file_path, directory).replace(os.sep, "/")
-                file_paths.append(rel_path)
-    return file_paths
+    return core_collect_file_paths(directory, global_ignore_patterns, include_ignore_files=True)
 
 
 def process_directory(directory, ignore_patterns, outfile, special_character, only_structure=False, max_file_size=5 * 1024 * 1024):
@@ -128,13 +100,11 @@ def summarize_project(directory, special_character, output_file, global_ignore_p
 
     # Count tokens for each model
     total_token_counts = {}
-    for model in token_models:
-        if model == "gpt-4o":
-            total_token_counts["gpt-4o"] = get_openai_token_count(content, "gpt-4o")
-        elif model == "claude-3-5-sonnet-20241022":
-            total_token_counts["claude-3-5-sonnet-20241022"] = get_anthropic_token_count(
-                [{"role": "user", "content": content}], "claude-3-5-sonnet-20241022"
-            )
+    if token_models:
+        counts = get_all_content_counts(content, token_models)
+        for m in token_models:
+            if m in counts:
+                total_token_counts[m] = counts[m]
 
     # Step 3: Log the aggregated results
     logging.info(f"Total Character Count: {total_character_count}")
@@ -143,27 +113,9 @@ def summarize_project(directory, special_character, output_file, global_ignore_p
 
 
 def get_all_content_counts(content: str, models: list) -> dict:
-    """
-    Calculates character count and token counts for specified models.
-
-    Args:
-        content: The input text content.
-        models: A list of model names for which token counts should be calculated.
-
-    Returns:
-        A dictionary with character count and token counts.
-    """
-    counts = {"characters": len(content)}
-
-    if "gpt-4o" in models:
-        counts["gpt-4o"] = get_openai_token_count(content, "gpt-4o")
-
-    if "claude-3-5-sonnet-20241022" in models:
-        counts["claude-3-5-sonnet-20241022"] = get_anthropic_token_count(
-            [{"role": "user", "content": content}], "claude-3-5-sonnet-20241022"
-        )
-
-    return counts
+    # Backward compatibility shim; delegate to core implementation
+    from ps_core.tokens import get_all_content_counts as core_get_all_content_counts
+    return core_get_all_content_counts(content, models)
 
 
 if __name__ == "__main__":

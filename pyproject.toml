@@ -14,6 +14,16 @@ anthropic = "^0.45.2"
 python-dotenv = "^1.0.1"
 
 
+[tool.poetry.dev-dependencies]
+pytest = "^8.3.0"
+
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-q"
+testpaths = ["tests"]
+
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
