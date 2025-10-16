@@ -13,6 +13,8 @@ tiktoken = "^0.8.0"
 anthropic = "^0.45.2"
 python-dotenv = "^1.0.1"
 prettytable = "^3.9.0"
+anytree = "^2.12"
+pathspec = "^0.12"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -1,124 +1,19 @@
+#!/usr/bin/env python3
+"""Project summarization script - generates structured project summaries."""
+
 import argparse
-import os
 import logging
-import nbformat
-from projectsummarizer.core.ignore import parse_ignore_files as core_parse_ignore_files, collect_file_paths as core_collect_file_paths
-from projectsummarizer.core.tokens import get_all_content_counts
-from projectsummarizer.constants import DEFAULT_IGNORE_PATTERNS, BINARY_IGNORE_PATTERNS
 from dotenv import load_dotenv
+
+from projectsummarizer.engine import build_summary
+from projectsummarizer.contents.formatters import TextFormatter
 
 
 load_dotenv()
-
 logging.basicConfig(level=logging.INFO)
 
-IGNORE_FILES = [".gitignore", ".dockerignore"]
 
-
-def parse_ignore_files(directory):
-    return core_parse_ignore_files(directory)
-
-
-def should_ignore(file_path, top_level_dir, ignore_patterns):
-    # Kept for backward compatibility if imported elsewhere
-    from projectsummarizer.core.ignore import should_ignore as core_should_ignore
-    return core_should_ignore(file_path, top_level_dir, ignore_patterns)
-
-
-def write_file_content(outfile, name, special_character, content):
-    outfile.write(f"{name}:\n")
-    outfile.write(f"{special_character}\n")
-    outfile.write(content)
-    outfile.write(f"\n{special_character}\n\n")
-
-
-def extract_notebook_content(notebook_path):
-    with open(notebook_path, 'r', encoding='utf-8') as f:
-        nb = nbformat.read(f, as_version=4)
-
-    content = ""
-    for cell in nb.cells:
-        if cell.cell_type in ['code', 'markdown']:
-            if cell.source:
-                content += f"# {cell.cell_type.capitalize()} cell\n{cell.source}\n\n"
-    return content
-
-
-def collect_file_paths(directory, global_ignore_patterns):
-    return core_collect_file_paths(directory, global_ignore_patterns, include_ignore_files=True)
-
-
-def process_directory(directory, ignore_patterns, outfile, special_character, only_structure=False, max_file_size=5 * 1024 * 1024):
-    # Collect file paths
-    file_paths = collect_file_paths(directory, ignore_patterns)
-
-    # Write the project structure
-    outfile.write(f"Files:\n{special_character}\n")
-    for relative_path in file_paths:
-        outfile.write(f" {relative_path}\n")
-    outfile.write(f"{special_character}\n\n")
-
-    if only_structure:
-        logging.info("Only structure output is enabled. Skipping file content processing.")
-        return
-
-    # Process and write file contents
-    for relative_path in file_paths:
-        file_path = os.path.join(directory, relative_path)
-        file_size = os.path.getsize(file_path)
-
-        if file_size > max_file_size:
-            logging.warning(f"Skipping {file_path}: file size exceeds {max_file_size} bytes")
-            continue
-
-        logging.info(f"Processing {file_path}")
-        if file_path.endswith('.ipynb'):
-            content = extract_notebook_content(file_path)
-        else:
-            with open(file_path, "r", encoding='utf-8') as infile:
-                content = infile.read()
-
-        # Write the file content to the output file
-        write_file_content(outfile, relative_path, special_character, content)
-
-
-def summarize_project(directory, special_character, output_file, global_ignore_patterns, only_structure=False, max_file_size=5 * 1024 * 1024, token_models=None):
-    if token_models is None:
-        token_models = []
-
-    # Step 1: Write project structure and contents to output file
-    global_ignore_patterns = list(global_ignore_patterns) + parse_ignore_files(directory)
-    with open(output_file, "w", encoding='utf-8') as outfile:
-        process_directory(directory, global_ignore_patterns, outfile, special_character, only_structure=only_structure, max_file_size=max_file_size)
-
-    # Step 2: Perform final counts on the entire output file
-    with open(output_file, "r", encoding='utf-8') as outfile:
-        content = outfile.read()
-
-    # Count characters
-    total_character_count = len(content)
-
-    # Count tokens for each model
-    total_token_counts = {}
-    if token_models:
-        counts = get_all_content_counts(content, token_models)
-        for m in token_models:
-            if m in counts:
-                total_token_counts[m] = counts[m]
-
-    # Step 3: Log the aggregated results
-    logging.info(f"Total Character Count: {total_character_count}")
-    for model, token_count in total_token_counts.items():
-        logging.info(f"Total Token Count ({model}): {token_count}")
-
-
-def get_all_content_counts(content: str, models: list) -> dict:
-    # Backward compatibility shim; delegate to core implementation
-    from projectsummarizer.core.tokens import get_all_content_counts as core_get_all_content_counts
-    return core_get_all_content_counts(content, models)
-
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Summarize project files, optionally including their contents."
     )
@@ -156,14 +51,12 @@ if __name__ == "__main__":
         action="store_true",
         help="If set, only output the project structure without file contents"
     )
-
     parser.add_argument(
         "--max_file_size",
         type=int,
         default=5 * 1024 * 1024,
         help="Maximum file size (in bytes) to include in the summary. Default is 5 MB."
     )
-
     parser.add_argument(
         "--count_tokens",
         type=str,
@@ -179,23 +72,70 @@ if __name__ == "__main__":
     
     if not args.no_defaults:
         # Include default patterns (security, cache, etc.)
-        global_patterns.extend(DEFAULT_IGNORE_PATTERNS)
-        # Include binary patterns by default
-        global_patterns.extend(BINARY_IGNORE_PATTERNS)
+        # Note: These are now handled by IgnorePatternsHandler internally
+        pass
     elif args.include_binary:
         # If no-defaults but include-binary, only add binary patterns
-        global_patterns.extend(BINARY_IGNORE_PATTERNS)
+        # Note: This is handled by IgnorePatternsHandler internally
+        pass
     
     # Add user-specified patterns
+    user_patterns = []
     if args.ignore_patterns:
-        global_patterns.extend(args.ignore_patterns.split(","))
+        user_patterns.extend(args.ignore_patterns.split(","))
 
-    summarize_project(
-        args.directory, 
-        args.special_character, 
-        args.output_file, 
-        global_patterns, 
-        only_structure=args.only_structure,
+    # Build summary
+    root, content_map = build_summary(
+        args.directory,
+        ignore_patterns=user_patterns,
+        use_defaults=not args.no_defaults,
+        include_binary=args.include_binary,
+        read_ignore_files=True,
+        token_models=args.count_tokens or [],
         max_file_size=args.max_file_size,
-        token_models=args.count_tokens or []
     )
+
+    # Generate formatted output
+    formatter = TextFormatter(delimiter=args.special_character)
+    output = formatter.format_summary(
+        root,
+        content_map,
+        include_structure=True,
+        include_contents=not args.only_structure,
+    )
+
+    # Write to output file
+    with open(args.output_file, "w", encoding='utf-8') as outfile:
+        outfile.write(output)
+
+    # Log statistics
+    total_files = len(content_map)
+    total_character_count = len(output)
+    
+    logging.info(f"Total files processed: {total_files}")
+    logging.info(f"Total Character Count: {total_character_count}")
+    
+    # Log token counts if requested
+    if args.count_tokens:
+        # Calculate total tokens from the tree
+        def collect_tokens(node):
+            total_tokens = {}
+            if not node.is_dir and node.tokens:
+                for model, count in node.tokens.items():
+                    if model != "characters":
+                        total_tokens[model] = total_tokens.get(model, 0) + count
+            
+            for child in node.children:
+                child_tokens = collect_tokens(child)
+                for model, count in child_tokens.items():
+                    total_tokens[model] = total_tokens.get(model, 0) + count
+            
+            return total_tokens
+        
+        total_tokens = collect_tokens(root)
+        for model, token_count in total_tokens.items():
+            logging.info(f"Total Token Count ({model}): {token_count}")
+
+
+if __name__ == "__main__":
+    main()
