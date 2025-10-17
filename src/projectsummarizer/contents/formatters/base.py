@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Dict
-from ...files.tree.node import FsNode
+from projectsummarizer.files.tree.node import FsNode
 
 
 class BaseFormatter(ABC):

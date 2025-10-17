@@ -1,20 +1,15 @@
 """Tree plotting and ASCII visualization."""
 
 from typing import List, Optional
-from ..files.tree.node import FsNode
+from projectsummarizer.files.tree.node import FsNode
 
 
 class TreePlotter:
     """Plots filesystem trees in various formats."""
     
-    def __init__(self, show_stats: List[str] | None = None):
-        """Initialize with optional statistics to display.
-        
-        Args:
-            show_stats: List of stat names to display (e.g., ['size', 'gpt-4o'])
-                       If None, shows only size. If empty, shows no stats.
-        """
-        self.show_stats = show_stats
+    def __init__(self):
+        """Initialize the tree plotter."""
+        pass
     
     def plot_ascii(self, root: FsNode) -> str:
         """Plot tree in ASCII format with statistics.
@@ -28,24 +23,19 @@ class TreePlotter:
         lines: List[str] = []
 
         def format_stats(node: FsNode) -> str:
-            """Format statistics for a node."""
-            if self.show_stats is None:
-                # Default: show only size
-                return f" ({node.size}B)"
-            elif not self.show_stats:
-                # Empty list: show no stats
+            """Format statistics for a node using its own stats."""
+            node_stats = node.stats()
+            if not node_stats:
                 return ""
-            else:
-                # Show specified stats
-                node_stats = node.stats()
-                parts = []
-                for stat in self.show_stats:
-                    if stat in node_stats:
-                        if stat == "size":
-                            parts.append(f"{node_stats[stat]}B")
-                        else:
-                            parts.append(f"{stat}:{node_stats[stat]}")
-                return " (" + "; ".join(parts) + ")" if parts else ""
+            
+            parts = []
+            for stat_name, stat_value in node_stats.items():
+                if stat_name == "size":
+                    parts.append(f"{stat_value}B")
+                else:
+                    parts.append(f"{stat_name}:{stat_value}")
+            
+            return " (" + "; ".join(parts) + ")" if parts else ""
 
         def walk(node: FsNode, prefix: str = ""):
             kids = sorted(node.children, key=lambda x: (not x.is_dir, x.name.lower()))

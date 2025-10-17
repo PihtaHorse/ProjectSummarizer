@@ -1,7 +1,7 @@
 import os
 from typing import Dict, Iterable, List, Optional
-from .node import FsNode
-from ...tokens.counter import TokenCounter
+from projectsummarizer.files.tree.node import FsNode
+from projectsummarizer.tokens.counter import TokenCounter
     
 
 
@@ -18,21 +18,35 @@ def _ext_of(rel: str) -> str:
 
 
 class FileSystemTree:
-    """Builds and renders a filesystem tree from relative paths and metadata."""
+    """Builds and renders a filesystem tree from files data."""
 
-    def __init__(self, relpaths: Iterable[str], per_file_meta: Dict[str, Dict]) -> None:
-        self._root = self._build(relpaths, per_file_meta)
+    def __init__(self, files_data: Dict[str, Dict]) -> None:
+        self._root = self._build(files_data)
+
+    @classmethod
+    def from_files_data(
+        cls, 
+        files_data: Dict[str, Dict]
+    ) -> "FileSystemTree":
+        """Create a FileSystemTree from files data."""
+        return cls(files_data)
 
     @classmethod
     def from_directory(
         cls, 
         directory: str, 
         relpaths: Iterable[str], 
-        token_counter: Optional["TokenCounter"] = None
+        token_counter: Optional["TokenCounter"] = None,
+        files_data: Optional[Dict[str, Dict]] = None
     ) -> "FileSystemTree":
         """Create a FileSystemTree from a directory and relative paths, gathering file sizes and optional token counts."""
-        meta = cls._gather_file_metadata(directory, relpaths, token_counter)
-        return cls(relpaths, meta)
+        if files_data is not None:
+            # Use provided files data as-is
+            return cls(files_data)
+        else:
+            # Fallback to gathering metadata from scratch
+            meta = cls._gather_file_metadata(directory, relpaths, token_counter)
+            return cls(meta)
 
     @staticmethod
     def _gather_file_metadata(
@@ -64,15 +78,16 @@ class FileSystemTree:
             out[rel] = meta
         return out
 
+
     @property
     def root(self) -> FsNode:
         return self._root
 
-    def _build(self, relpaths: Iterable[str], per_file_meta: Dict[str, Dict]) -> FsNode:
+    def _build(self, files_data: Dict[str, Dict]) -> FsNode:
         root = FsNode(name="", is_dir=True, relpath="")
         index: Dict[str, FsNode] = {"": root}
 
-        for rel in relpaths:
+        for rel, data in files_data.items():
             parent = root
             cur = ""
             parts = _parts(rel)
@@ -87,22 +102,17 @@ class FileSystemTree:
 
             file_node = index[cur]
             file_node.ext = _ext_of(rel)
-            meta = per_file_meta.get(rel, {})
             file_node.set_file_metrics(
-                size=meta.get("size", 0),
-                tokens=meta.get("tokens", {})
+                size=data.get("size", 0),
+                tokens=data.get("tokens", {})
             )
-            for flag in meta.get("flags", set()):
+            for flag in data.get("flags", set()):
                 file_node.mark_flag(flag)
 
         root.recompute_aggregates()
         return root
 
 
-# Tree plotting functionality moved to plotting module
-# Use: from projectsummarizer.plotting import ascii_tree
-
-
-def build_fs_tree(relpaths: Iterable[str], per_file_meta: Dict[str, Dict]) -> FsNode:
-    return FileSystemTree(relpaths, per_file_meta).root
+def build_fs_tree(files_data: Dict[str, Dict]) -> FsNode:
+    return FileSystemTree(files_data).root
 

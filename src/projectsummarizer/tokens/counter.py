@@ -1,8 +1,8 @@
 """Token counting orchestrator for various AI models."""
 
 from typing import Dict, List
-from .openai import get_openai_token_count
-from .anthropic import get_anthropic_token_count
+from projectsummarizer.tokens.openai import get_openai_token_count
+from projectsummarizer.tokens.anthropic import get_anthropic_token_count
 
 
 class TokenCounter:
@@ -21,7 +21,8 @@ class TokenCounter:
         Returns:
             Dictionary mapping model names to token counts
         """
-        counts: Dict[str, int] = {"characters": len(content)}
+        # counts: Dict[str, int] = {"chars": len(content)}
+        counts: Dict[str, int] = {}
         
         for model in self.models:
             if model == "gpt-4o":

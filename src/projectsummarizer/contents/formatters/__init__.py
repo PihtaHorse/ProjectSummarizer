@@ -1,7 +1,7 @@
 """Output formatters for different summary formats."""
 
-from .base import BaseFormatter
-from .text import TextFormatter
+from projectsummarizer.contents.formatters.base import BaseFormatter
+from projectsummarizer.contents.formatters.text import TextFormatter
 
 __all__ = [
     "BaseFormatter",

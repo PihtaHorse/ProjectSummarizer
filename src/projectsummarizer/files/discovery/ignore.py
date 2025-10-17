@@ -28,27 +28,6 @@ class IgnorePatternsHandler:
         "*~",
     ]
 
-    # Binary file patterns for --exclude-binary flag
-    BINARY_IGNORE_PATTERNS = [
-        # Images
-        "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.tiff", "*.webp", "*.svg", "*.ico",
-        # Videos
-        "*.mp4", "*.avi", "*.mov", "*.wmv", "*.flv", "*.webm", "*.mkv", "*.m4v",
-        # Audio
-        "*.mp3", "*.wav", "*.flac", "*.aac", "*.ogg", "*.m4a", "*.wma",
-        # Archives
-        "*.zip", "*.tar", "*.gz", "*.rar", "*.7z", "*.bz2", "*.xz", "*.tar.gz", "*.tar.bz2",
-        # Executables and libraries
-        "*.exe", "*.dll", "*.so", "*.dylib", "*.bin", "*.obj", "*.o", "*.a", "*.lib",
-        # Compiled code
-        "*.pyc", "*.pyo", "*.class", "*.jar", "*.war", "*.ear",
-        # Packages and installers
-        "*.apk", "*.ipa", "*.deb", "*.rpm", "*.msi", "*.dmg", "*.iso", "*.app",
-        # Database files
-        "*.db", "*.sqlite", "*.sqlite3", "*.mdb", "*.accdb",
-        # Fonts
-        "*.ttf", "*.otf", "*.woff", "*.woff2", "*.eot",
-    ]
 
     def __init__(
         self,
@@ -56,14 +35,12 @@ class IgnorePatternsHandler:
         *,
         user: Iterable[str] = (),
         use_defaults: bool = True,
-        include_binary: bool = True,
         read_ignore_files: bool = True,
     ) -> None:
         self.root = Path(root)
         self._spec = self._compile_spec(
             user=user,
             use_defaults=use_defaults,
-            include_binary=include_binary,
             read_ignore_files=read_ignore_files,
         )
 
@@ -90,15 +67,13 @@ class IgnorePatternsHandler:
         user: Iterable[str],
         *,
         use_defaults: bool,
-        include_binary: bool,
         read_ignore_files: bool,
     ) -> PathSpec:
         """Compile all patterns into a PathSpec."""
         pats: List[str] = []
         if use_defaults:
             pats += list(self.DEFAULT_IGNORE_PATTERNS)
-        if include_binary or use_defaults:
-            pats += list(self.BINARY_IGNORE_PATTERNS)
+        
         pats += list(user)
         if read_ignore_files:
             pats += self._read_gitignore_patterns_with_prefixes()

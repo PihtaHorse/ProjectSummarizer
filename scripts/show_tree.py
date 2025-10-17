@@ -10,6 +10,13 @@ def main():
     ap.add_argument("--include-binary", action="store_true", help="Include binary patterns if --no-defaults")
     ap.add_argument("--no-gitignore", action="store_true", help="Do not read .gitignore files")
     ap.add_argument(
+        "--filter",
+        type=str,
+        choices=["included", "removed", "all"],
+        default="included",
+        help="Which files to show: 'included' (default, after ignore patterns), 'removed' (ignored files), or 'all' (no filtering)"
+    )
+    ap.add_argument(
         "--count_tokens",
         type=str,
         nargs="*",
@@ -27,8 +34,9 @@ def main():
         include_binary=args.include_binary,
         read_ignore_files=not args.no_gitignore,
         token_models=args.count_tokens or [],
+        filter_type=args.filter,
     )
-    print(render_ascii_tree(root, models=args.count_tokens))
+    print(render_ascii_tree(root))
 
 
 if __name__ == "__main__":

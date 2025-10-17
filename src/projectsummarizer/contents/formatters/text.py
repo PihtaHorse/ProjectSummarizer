@@ -1,8 +1,8 @@
 """Text formatter for traditional delimited output."""
 
 from typing import Dict
-from .base import BaseFormatter
-from ...files.tree.node import FsNode
+from projectsummarizer.contents.formatters.base import BaseFormatter
+from projectsummarizer.files.tree.node import FsNode
 
 
 class TextFormatter(BaseFormatter):

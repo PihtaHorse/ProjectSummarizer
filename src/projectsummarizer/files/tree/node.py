@@ -37,13 +37,16 @@ class FsNode(NodeMixin):
         if not self.is_dir:
             return self._file_size
         if self._dirty:
-            self._agg_size = sum(c.size for c in self.children)
-            self._dirty = False
+            self._recompute_aggregates_for_node()
         return self._agg_size
 
     @property
     def tokens(self) -> Dict[str, int]:
-        return self._file_tokens if not self.is_dir else self._agg_tokens
+        if not self.is_dir:
+            return self._file_tokens
+        if self._dirty:
+            self._recompute_aggregates_for_node()
+        return self._agg_tokens
 
     def set_file_metrics(self, *, size: Optional[int] = None, tokens: Optional[Dict[str, int]] = None) -> None:
         if self.is_dir:
@@ -68,9 +71,26 @@ class FsNode(NodeMixin):
     def recompute_aggregates(self) -> None:
         for n in PostOrderIter(self):
             if n.is_dir:
-                n._agg_size = sum(c.size for c in n.children)
-                n._agg_tokens = {}
-                n._dirty = False
+                n._recompute_aggregates_for_node()
+
+    def _recompute_aggregates_for_node(self) -> None:
+        """Recompute all aggregate metrics for a directory node.
+
+        Aggregates include:
+        - size: sum of children's sizes
+        - tokens: key-wise sum of children's token dicts
+        """
+        # Aggregate sizes
+        self._agg_size = sum(c.size for c in self.children)
+
+        # Aggregate token counts by key
+        aggregated: Dict[str, int] = {}
+        for child in self.children:
+            for key, value in (child.tokens or {}).items():
+                aggregated[key] = aggregated.get(key, 0) + int(value)
+        self._agg_tokens = aggregated
+
+        self._dirty = False
 
     def get_file_paths(self) -> List[str]:
         """Get all file paths in this tree (excluding directories)."""

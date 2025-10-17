@@ -1,8 +1,8 @@
 """Content readers for different file types."""
 
-from .base import BaseContentReader, ContentReaderRegistry
-from .text_file import TextFileReader
-from .notebook import NotebookReader
+from projectsummarizer.contents.readers.base import BaseContentReader, ContentReaderRegistry
+from projectsummarizer.contents.readers.text_file import TextFileReader
+from projectsummarizer.contents.readers.notebook import NotebookReader
 
 __all__ = [
     "BaseContentReader",

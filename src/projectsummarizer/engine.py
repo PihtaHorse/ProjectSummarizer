@@ -4,6 +4,7 @@ from projectsummarizer.files.tree.node import FsNode
 from projectsummarizer.files.discovery import IgnorePatternsHandler, FileScanner
 from projectsummarizer.tokens import TokenCounter
 from projectsummarizer.contents.readers import ContentReaderRegistry, TextFileReader, NotebookReader
+from projectsummarizer.contents.readers.binary import BinaryFileReader
 from projectsummarizer.plotting import TreePlotter
 
 
@@ -14,18 +15,19 @@ def _setup_file_discovery(
     use_defaults: bool = True,
     include_binary: bool = False,
     read_ignore_files: bool = True,
-) -> Tuple[IgnorePatternsHandler, FileScanner, List[str]]:
-    """Set up file discovery components and return discovered file paths."""
+    token_counter = None,
+    filter_type: str = "included",
+) -> Tuple[IgnorePatternsHandler, FileScanner, Dict[str, Dict]]:
+    """Set up file discovery components and return discovered file paths with files data."""
     ignore_handler = IgnorePatternsHandler(
         directory,
         user=list(ignore_patterns or []),
         use_defaults=use_defaults,
-        include_binary=include_binary,
         read_ignore_files=read_ignore_files,
     )
-    scanner = FileScanner(directory, ignore_handler)
-    relpaths = scanner.discover()
-    return ignore_handler, scanner, relpaths
+    scanner = FileScanner(directory, ignore_handler, include_binary=include_binary, token_counter=token_counter, filter_type=filter_type)
+    files_data = scanner.discover()
+    return ignore_handler, scanner, files_data
 
 
 def build_tree_from_directory(
@@ -36,33 +38,31 @@ def build_tree_from_directory(
     include_binary: bool = False,
     read_ignore_files: bool = True,
     token_models: List[str] | None = None,
+    filter_type: str = "included",
 ) -> FsNode:
     """Build a file tree from directory with ignore patterns and optional token counting."""
-    _, _, relpaths = _setup_file_discovery(
-        directory,
-        ignore_patterns=ignore_patterns,
-        use_defaults=use_defaults,
-        include_binary=include_binary,
-        read_ignore_files=read_ignore_files,
-    )
-    
     # Set up token counter if models provided
     token_counter = None
     if token_models:
         token_counter = TokenCounter(token_models)
     
-    tree = FileSystemTree.from_directory(directory, relpaths, token_counter)
+    _, _, files_data = _setup_file_discovery(
+        directory,
+        ignore_patterns=ignore_patterns,
+        use_defaults=use_defaults,
+        include_binary=include_binary,
+        read_ignore_files=read_ignore_files,
+        token_counter=token_counter,
+        filter_type=filter_type,
+    )
+    
+    # Create tree directly from files_data
+    tree = FileSystemTree.from_files_data(files_data)
     return tree.root
 
-def render_ascii_tree(root: FsNode, models: List[str] | None = None) -> str:
-    """Render ASCII tree with optional token information."""
-    if models:
-        # Include both size and token models in stats
-        stats = ["size"] + models
-    else:
-        # Default: show only size
-        stats = None
-    plotter = TreePlotter(stats)
+def render_ascii_tree(root: FsNode) -> str:
+    """Render ASCII tree with node statistics."""
+    plotter = TreePlotter()
     return plotter.plot_ascii(root)
 
 
@@ -75,6 +75,7 @@ def build_summary(
     read_ignore_files: bool = True,
     token_models: List[str] | None = None,
     max_file_size: int = 5*1024*1024,
+    filter_type: str = "included",
 ) -> Tuple[FsNode, Dict[str, str]]:
     """Build tree with token counts and read file contents.
     
@@ -90,29 +91,37 @@ def build_summary(
     Returns:
         (root_node, content_map) where content_map: {relpath: content}
     """
-    # Build tree with token counting (reuse existing function)
-    root = build_tree_from_directory(
+    # Set up token counter if models provided
+    token_counter = None
+    if token_models:
+        token_counter = TokenCounter(token_models)
+    
+    # Get files data from discovery
+    _, _, files_data = _setup_file_discovery(
         directory,
         ignore_patterns=ignore_patterns,
         use_defaults=use_defaults,
         include_binary=include_binary,
         read_ignore_files=read_ignore_files,
-        token_models=token_models,
+        token_counter=token_counter,
+        filter_type=filter_type,
     )
     
-    # Get file paths from the tree for content reading
-    relpaths = root.get_file_paths()
+    # Build tree from files data
+    root = FileSystemTree.from_files_data(files_data).root
     
     # Set up content readers (specialized readers first, then fallback)
     reader_registry = ContentReaderRegistry()
     reader_registry.register(NotebookReader())  # Specialized reader for notebooks
+    reader_registry.register(BinaryFileReader())  # Binary file reader
     reader_registry.register(TextFileReader())  # Fallback reader for all files
     
-    # Read file contents
+    # Read file contents with metadata
     content_map: Dict[str, str] = {}
-    for relpath in relpaths:
+    for relpath, file_data in files_data.items():
         full_path = f"{directory}/{relpath}"
-        content = reader_registry.read(full_path, max_file_size)
+        # Add relpath to file_data for the binary reader
+        content = reader_registry.read(full_path, max_file_size, file_data)
         if content:  # Only include non-empty content
             content_map[relpath] = content
     

@@ -64,6 +64,13 @@ def main():
         choices=["gpt-4o", "claude-3-5-sonnet-20241022"],
         help="Specify one or more models to count tokens for (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022')."
     )
+    parser.add_argument(
+        "--filter",
+        type=str,
+        choices=["included", "removed", "all"],
+        default="included",
+        help="Which files to process: 'included' (default, after ignore patterns), 'removed' (ignored files), or 'all' (no filtering)"
+    )
     
     args = parser.parse_args()
 
@@ -93,6 +100,7 @@ def main():
         read_ignore_files=True,
         token_models=args.count_tokens or [],
         max_file_size=args.max_file_size,
+        filter_type=args.filter,
     )
 
     # Generate formatted output
