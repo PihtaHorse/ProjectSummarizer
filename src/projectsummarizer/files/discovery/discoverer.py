@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 from projectsummarizer.files.discovery.ignore import IgnorePatternsHandler
 from projectsummarizer.files.discovery.binary_detector import BinaryDetector
 
@@ -8,16 +8,34 @@ from projectsummarizer.files.discovery.binary_detector import BinaryDetector
 class FileScanner:
     """Discovers files in a directory tree, respecting ignore patterns.
 
-    Optionally excludes binary files based on content detection.
+    Uses a centralized IgnorePatternsHandler that handles all ignore logic.
     """
 
-    def __init__(self, root: str, ignore_handler: IgnorePatternsHandler, *, include_binary: bool = False, binary_detector: BinaryDetector | None = None, token_counter = None, filter_type: str = "included") -> None:
+    def __init__(
+        self, 
+        root: str, 
+        *,
+        user_patterns: List[str] = None,
+        use_defaults: bool = True,
+        read_ignore_files: bool = True,
+        include_binary: bool = False,
+        binary_detector: Optional[BinaryDetector] = None,
+        token_counter = None,
+        filter_type: str = "included"
+    ) -> None:
         self.root = Path(root)
-        self.ignore_handler = ignore_handler
-        self.include_binary = bool(include_binary)
-        self.binary_detector = binary_detector or BinaryDetector()
         self.token_counter = token_counter
         self.filter_type = filter_type
+        
+        # Create the centralized ignore handler
+        self.ignore_handler = IgnorePatternsHandler(
+            root=root,
+            user=user_patterns or [],
+            use_defaults=use_defaults,
+            read_ignore_files=read_ignore_files,
+            include_binary=include_binary,
+            binary_detector=binary_detector
+        )
 
     def discover(self) -> Dict[str, Dict]:
         """Return posix-style relative file paths with files data based on filter type.
@@ -37,29 +55,28 @@ class FileScanner:
         for cur, dirs, files in os.walk(self.root, topdown=True):
             for fn in files:
                 rel = (Path(cur) / fn).relative_to(self.root).as_posix()
+                full_path = (Path(cur) / fn).as_posix()
+                
+                # Use centralized ignore logic
+                ignore_data = self.ignore_handler.is_ignored(rel, full_path)
                 
                 # Apply filter logic
-                if not self._should_include_file(rel):
+                should_include = self._should_include_file(ignore_data["is_ignored"])
+                if not should_include:
                     continue
-                
-                full_path = (Path(cur) / fn).as_posix()
-                is_binary = self.binary_detector.is_binary(full_path)
-                
-                if not self.include_binary and is_binary:
-                    continue
-                
-                file_data = self._create_file_data(full_path, is_binary)
+
+                file_data = self._create_file_data(full_path, ignore_data["is_binary"])
                 out[rel] = file_data
         return out
     
-    def _should_include_file(self, rel_path: str) -> bool:
+    def _should_include_file(self, is_ignored: bool) -> bool:
         """Determine if a file should be included based on filter type."""
         if self.filter_type == "all":
             return True
         elif self.filter_type == "removed":
-            return self.ignore_handler.should_ignore(rel_path)
+            return is_ignored
         else:  # "included" (default)
-            return not self.ignore_handler.should_ignore(rel_path)
+            return not is_ignored
     
     def _create_file_data(self, full_path: str, is_binary: bool) -> Dict:
         """Create file data dictionary for a given file."""

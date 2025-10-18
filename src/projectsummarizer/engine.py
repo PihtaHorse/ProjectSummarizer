@@ -19,15 +19,17 @@ def _setup_file_discovery(
     filter_type: str = "included",
 ) -> Tuple[IgnorePatternsHandler, FileScanner, Dict[str, Dict]]:
     """Set up file discovery components and return discovered file paths with files data."""
-    ignore_handler = IgnorePatternsHandler(
-        directory,
-        user=list(ignore_patterns or []),
+    scanner = FileScanner(
+        root=directory,
+        user_patterns=list(ignore_patterns or []),
         use_defaults=use_defaults,
         read_ignore_files=read_ignore_files,
+        include_binary=include_binary,
+        token_counter=token_counter,
+        filter_type=filter_type
     )
-    scanner = FileScanner(directory, ignore_handler, include_binary=include_binary, token_counter=token_counter, filter_type=filter_type)
     files_data = scanner.discover()
-    return ignore_handler, scanner, files_data
+    return scanner.ignore_handler, scanner, files_data
 
 
 def build_tree_from_directory(
