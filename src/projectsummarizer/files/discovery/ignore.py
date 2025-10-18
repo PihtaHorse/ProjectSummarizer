@@ -108,7 +108,7 @@ class IgnorePatternsHandler:
         """Check if a file should be ignored and return detailed information.
         
         This is the main method that FileScanner will call.
-        It handles both pattern-based and binary file ignores.
+        It handles binary file detection first, then pattern-based ignores.
         Stores complete data for all files (ignored or not).
         
         Args:
@@ -122,20 +122,9 @@ class IgnorePatternsHandler:
             - ignore_reasons: list - reasons for ignoring (if ignored)
         """
         ignore_reasons = []
-        
-        # Check pattern-based ignores
         matching_patterns = []
-        for pattern_obj in self._spec.patterns:
-            if pattern_obj.match_file(rel_path):
-                pattern_str = str(pattern_obj.pattern)
-                matching_patterns.append(pattern_str)
-                # Track pattern matches
-                self._pattern_matches[pattern_str] = self._pattern_matches.get(pattern_str, 0) + 1
         
-        if matching_patterns:
-            ignore_reasons.append({"type": "pattern", "patterns": matching_patterns})
-        
-        # Check binary file ignores
+        # FIRST: Check if file is binary
         is_binary = self.binary_detector.is_binary(full_path)
         if is_binary:
             # Track binary extension
@@ -143,8 +132,34 @@ class IgnorePatternsHandler:
             if ext:
                 self._binary_extensions.add(ext)
             
+            # If binary and not including binary files, ignore it
             if not self.include_binary:
                 ignore_reasons.append({"type": "binary", "extension": ext})
+                
+                # Create ignore data for binary files (no pattern matching needed)
+                ignore_data = {
+                    "is_ignored": True,
+                    "is_binary": is_binary,
+                    "ignore_reasons": ignore_reasons,
+                    "matched_patterns": [],
+                    "binary_extension": ext
+                }
+                
+                # Store complete data for all files (ignored or not)
+                self._checked_files[rel_path] = ignore_data
+                return ignore_data
+        
+        # SECOND: Only check pattern-based ignores for non-binary files
+        if not is_binary:
+            for pattern_obj in self._spec.patterns:
+                if pattern_obj.match_file(rel_path):
+                    pattern_str = str(pattern_obj.pattern)
+                    matching_patterns.append(pattern_str)
+                    # Track pattern matches
+                    self._pattern_matches[pattern_str] = self._pattern_matches.get(pattern_str, 0) + 1
+            
+            if matching_patterns:
+                ignore_reasons.append({"type": "pattern", "patterns": matching_patterns})
         
         # Create complete ignore data
         ignore_data = {
