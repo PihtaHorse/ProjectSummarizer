@@ -1,20 +1,22 @@
 import os
 from typing import Dict, Iterable, List, Optional
-from projectsummarizer.files.tree.node import FsNode
+from projectsummarizer.files.tree.node import FileSystemNode
 from projectsummarizer.tokens.counter import TokenCounter
-    
 
 
-def _parts(rel: str) -> List[str]:
-    return rel.split("/") if rel else []
+
+def _extract_path_parts(relative_path: str) -> List[str]:
+    """Extract path parts from a relative path."""
+    return relative_path.split("/") if relative_path else []
 
 
-def _ext_of(rel: str) -> str:
-    base = os.path.basename(rel)
-    if base.startswith(".") and base.count(".") == 1:
-        return base[1:].lower()
-    _, ext = os.path.splitext(base)
-    return ext[1:].lower() if ext.startswith(".") else ""
+def _extract_extension(relative_path: str) -> str:
+    """Extract file extension from a relative path."""
+    basename = os.path.basename(relative_path)
+    if basename.startswith(".") and basename.count(".") == 1:
+        return basename[1:].lower()
+    _, extension = os.path.splitext(basename)
+    return extension[1:].lower() if extension.startswith(".") else ""
 
 
 class FileSystemTree:
@@ -50,58 +52,58 @@ class FileSystemTree:
 
     @staticmethod
     def _gather_file_metadata(
-        directory: str, 
-        relpaths: Iterable[str], 
+        directory: str,
+        relative_paths: Iterable[str],
         token_counter: Optional["TokenCounter"] = None
     ) -> Dict[str, Dict]:
         """Gather file sizes and optional token counts for the given relative paths."""
-        out: Dict[str, Dict] = {}
-        for rel in relpaths:
-            full = os.path.join(directory, rel)
+        files_metadata: Dict[str, Dict] = {}
+        for relative_path in relative_paths:
+            full_path = os.path.join(directory, relative_path)
             try:
-                size = os.path.getsize(full)
+                size = os.path.getsize(full_path)
             except OSError:
                 size = 0
-            
-            meta = {"size": int(size), "flags": set()}
-            
+
+            metadata = {"size": int(size), "flags": set()}
+
             # Add token counts if token_counter is provided
             if token_counter:
                 try:
-                    with open(full, "r", encoding="utf-8") as f:
-                        content = f.read()
+                    with open(full_path, "r", encoding="utf-8") as file:
+                        content = file.read()
                     tokens = token_counter.count_tokens(content)
-                    meta["tokens"] = tokens
+                    metadata["tokens"] = tokens
                 except (OSError, UnicodeDecodeError):
-                    meta["tokens"] = {}
-            
-            out[rel] = meta
-        return out
+                    metadata["tokens"] = {}
+
+            files_metadata[relative_path] = metadata
+        return files_metadata
 
 
     @property
-    def root(self) -> FsNode:
+    def root(self) -> FileSystemNode:
         return self._root
 
-    def _build(self, files_data: Dict[str, Dict]) -> FsNode:
-        root = FsNode(name="", is_dir=True, relpath="")
-        index: Dict[str, FsNode] = {"": root}
+    def _build(self, files_data: Dict[str, Dict]) -> FileSystemNode:
+        root = FileSystemNode(name="", is_directory=True, relative_path="")
+        index: Dict[str, FileSystemNode] = {"": root}
 
-        for rel, data in files_data.items():
+        for relative_path, data in files_data.items():
             parent = root
-            cur = ""
-            parts = _parts(rel)
-            for i, part in enumerate(parts):
-                cur = f"{cur}/{part}" if cur else part
-                node = index.get(cur)
-                is_dir = i < len(parts) - 1
+            current_path = ""
+            path_parts = _extract_path_parts(relative_path)
+            for i, part in enumerate(path_parts):
+                current_path = f"{current_path}/{part}" if current_path else part
+                node = index.get(current_path)
+                is_directory = i < len(path_parts) - 1
                 if node is None:
-                    node = FsNode(name=part, is_dir=is_dir, relpath=cur, parent=parent)
-                    index[cur] = node
+                    node = FileSystemNode(name=part, is_directory=is_directory, relative_path=current_path, parent=parent)
+                    index[current_path] = node
                 parent = node
 
-            file_node = index[cur]
-            file_node.ext = _ext_of(rel)
+            file_node = index[current_path]
+            file_node.extension = _extract_extension(relative_path)
             file_node.set_file_metrics(
                 size=data.get("size", 0),
                 tokens=data.get("tokens", {})
@@ -113,6 +115,7 @@ class FileSystemTree:
         return root
 
 
-def build_fs_tree(files_data: Dict[str, Dict]) -> FsNode:
+def build_filesystem_tree(files_data: Dict[str, Dict]) -> FileSystemNode:
+    """Build a filesystem tree from files data dictionary."""
     return FileSystemTree(files_data).root
 

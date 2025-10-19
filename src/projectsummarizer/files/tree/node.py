@@ -2,7 +2,7 @@ from typing import Dict, Optional, Set, List
 from anytree import NodeMixin, PostOrderIter, PreOrderIter
 
 
-class FsNode(NodeMixin):
+class FileSystemNode(NodeMixin):
     """Filesystem tree node with metrics and lazy aggregates.
 
     This class is designed for extension: override hooks or add methods
@@ -13,15 +13,15 @@ class FsNode(NodeMixin):
         self,
         name: str,
         *,
-        is_dir: bool = False,
-        relpath: str = "",
-        ext: str = "",
-        parent: Optional["FsNode"] = None,
+        is_directory: bool = False,
+        relative_path: str = "",
+        extension: str = "",
+        parent: Optional["FileSystemNode"] = None,
     ) -> None:
         self.name = name
-        self.is_dir = is_dir
-        self.relpath = relpath
-        self.ext = ext
+        self.is_directory = is_directory
+        self.relative_path = relative_path
+        self.extension = extension
         self.parent = parent
 
         self.flags: Set[str] = set()
@@ -34,7 +34,7 @@ class FsNode(NodeMixin):
     # ---- metrics ----
     @property
     def size(self) -> int:
-        if not self.is_dir:
+        if not self.is_directory:
             return self._file_size
         if self._dirty:
             self._recompute_aggregates_for_node()
@@ -42,14 +42,14 @@ class FsNode(NodeMixin):
 
     @property
     def tokens(self) -> Dict[str, int]:
-        if not self.is_dir:
+        if not self.is_directory:
             return self._file_tokens
         if self._dirty:
             self._recompute_aggregates_for_node()
         return self._agg_tokens
 
     def set_file_metrics(self, *, size: Optional[int] = None, tokens: Optional[Dict[str, int]] = None) -> None:
-        if self.is_dir:
+        if self.is_directory:
             raise ValueError("set_file_metrics() only valid for files")
         if size is not None:
             self._file_size = int(size)
@@ -63,15 +63,15 @@ class FsNode(NodeMixin):
 
     # ---- maintenance ----
     def _mark_dirty_up(self) -> None:
-        n: Optional["FsNode"] = self
-        while n is not None:
-            n._dirty = True
-            n = n.parent
+        node: Optional["FileSystemNode"] = self
+        while node is not None:
+            node._dirty = True
+            node = node.parent
 
     def recompute_aggregates(self) -> None:
-        for n in PostOrderIter(self):
-            if n.is_dir:
-                n._recompute_aggregates_for_node()
+        for node in PostOrderIter(self):
+            if node.is_directory:
+                node._recompute_aggregates_for_node()
 
     def _recompute_aggregates_for_node(self) -> None:
         """Recompute all aggregate metrics for a directory node.
@@ -81,7 +81,7 @@ class FsNode(NodeMixin):
         - tokens: key-wise sum of children's token dicts
         """
         # Aggregate sizes
-        self._agg_size = sum(c.size for c in self.children)
+        self._agg_size = sum(child.size for child in self.children)
 
         # Aggregate token counts by key
         aggregated: Dict[str, int] = {}
@@ -94,8 +94,8 @@ class FsNode(NodeMixin):
 
     def get_file_paths(self) -> List[str]:
         """Get all file paths in this tree (excluding directories)."""
-        return [node.relpath for node in PreOrderIter(self) 
-                if not node.is_dir and node.relpath]
+        return [node.relative_path for node in PreOrderIter(self)
+                if not node.is_directory and node.relative_path]
 
     def stats(self) -> Dict[str, int]:
         """Get statistics for this node as a dictionary.
@@ -110,6 +110,6 @@ class FsNode(NodeMixin):
 
     # ---- debugging ----
     def __repr__(self) -> str:
-        kind = "dir" if self.is_dir else "file"
-        return f"FsNode({kind} {self.relpath or '.'}, size={self.size})"
+        kind = "directory" if self.is_directory else "file"
+        return f"FileSystemNode({kind} {self.relative_path or '.'}, size={self.size})"
 

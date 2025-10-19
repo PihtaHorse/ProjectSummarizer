@@ -2,16 +2,16 @@
 
 from abc import ABC, abstractmethod
 from typing import Dict
-from projectsummarizer.files.tree.node import FsNode
+from projectsummarizer.files.tree.node import FileSystemNode
 
 
 class BaseFormatter(ABC):
     """Abstract base for output format generation."""
-    
+
     @abstractmethod
     def format_summary(
         self,
-        root: FsNode,
+        root: FileSystemNode,
         content_map: Dict[str, str],
         *,
         include_structure: bool = True,

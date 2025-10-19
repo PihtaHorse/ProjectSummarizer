@@ -14,10 +14,10 @@ from projectsummarizer.engine import (
     render_ascii_tree,
 )
 
-from projectsummarizer.files.tree.node import FsNode
+from projectsummarizer.files.tree.node import FileSystemNode
 from projectsummarizer.files.tree.tree import FileSystemTree
 from projectsummarizer.files.discovery import (
-    FileScanner,
+    FileDiscoverer,
     IgnorePatternsHandler,
     BinaryDetector,
 )
@@ -43,9 +43,9 @@ __all__ = [
     "render_ascii_tree",
 
     # Core classes
-    "FsNode",
+    "FileSystemNode",
     "FileSystemTree",
-    "FileScanner",
+    "FileDiscoverer",
     "IgnorePatternsHandler",
     "BinaryDetector",
     "TokenCounter",

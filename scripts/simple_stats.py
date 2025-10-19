@@ -5,7 +5,7 @@ import argparse
 import sys
 from prettytable import PrettyTable
 
-from projectsummarizer.files.discovery.discoverer import FileScanner
+from projectsummarizer.files.discovery.discoverer import FileDiscoverer
 
 
 def create_pattern_table(patterns_by_origin, pattern_matches):
@@ -158,24 +158,24 @@ Examples:
     if args.ignore_patterns:
         user_patterns.extend(args.ignore_patterns.split(","))
     
-    # Create scanner with centralized ignore logic
-    scanner = FileScanner(
+    # Create discoverer with centralized ignore logic
+    discoverer = FileDiscoverer(
         root=args.directory,
         user_patterns=user_patterns,
         use_defaults=not args.no_defaults,
         read_ignore_files=not args.no_gitignore,
         include_binary=args.include_binary,  # Allow user to control binary file inclusion
     )
-    
+
     try:
         # Run discovery to populate pattern tracker
-        scanner.discover()
-        
+        discoverer.discover()
+
         # Get data for tables
-        patterns_by_origin = scanner.ignore_handler.get_active_patterns_by_origin()
-        binary_extensions = scanner.ignore_handler.get_binary_extensions()
-        pattern_matches = scanner.ignore_handler._pattern_matches
-        checked_files = scanner.ignore_handler.get_checked_files_data()
+        patterns_by_origin = discoverer.ignore_handler.get_active_patterns_by_origin()
+        binary_extensions = discoverer.ignore_handler.get_binary_extensions()
+        pattern_matches = discoverer.ignore_handler._pattern_matches
+        checked_files = discoverer.ignore_handler.get_checked_files_data()
         
         # Create and display tables
         print("📊 IGNORE PATTERNS ANALYSIS")

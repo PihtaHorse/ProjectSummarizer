@@ -2,19 +2,19 @@
 
 from typing import Dict
 from projectsummarizer.contents.formatters.base import BaseFormatter
-from projectsummarizer.files.tree.node import FsNode
+from projectsummarizer.files.tree.node import FileSystemNode
 
 
 class TextFormatter(BaseFormatter):
     """Generates the traditional delimited text format (old summarize.py style)."""
-    
+
     def __init__(self, delimiter: str = "```"):
         """Initialize with content delimiter."""
         self.delimiter = delimiter
-    
+
     def format_summary(
         self,
-        root: FsNode,
+        root: FileSystemNode,
         content_map: Dict[str, str],
         *,
         include_structure: bool = True,

@@ -37,12 +37,12 @@ def main():
         help="Comma-separated list of additional patterns to ignore (added to defaults)",
     )
     parser.add_argument(
-        "--include-binary",
+        "--include_binary",
         action="store_true",
         help="Include binary file types (images, videos, audio, archives, executables, etc.) - by default these are excluded",
     )
     parser.add_argument(
-        "--no-defaults",
+        "--no_defaults",
         action="store_true",
         help="Don't use default ignore patterns, only use patterns from --ignore_patterns",
     )
@@ -128,18 +128,18 @@ def main():
         # Calculate total tokens from the tree
         def collect_tokens(node):
             total_tokens = {}
-            if not node.is_dir and node.tokens:
+            if not node.is_directory and node.tokens:
                 for model, count in node.tokens.items():
                     if model != "characters":
                         total_tokens[model] = total_tokens.get(model, 0) + count
-            
+
             for child in node.children:
                 child_tokens = collect_tokens(child)
                 for model, count in child_tokens.items():
                     total_tokens[model] = total_tokens.get(model, 0) + count
-            
+
             return total_tokens
-        
+
         total_tokens = collect_tokens(root)
         for model, token_count in total_tokens.items():
             logging.info(f"Total Token Count ({model}): {token_count}")
