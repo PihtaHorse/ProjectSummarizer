@@ -73,15 +73,17 @@ def main():
     if args.ignore_patterns:
         user_patterns.extend(args.ignore_patterns.split(","))
 
-    # Create formatter
-    formatter = StreamingTextFormatter(delimiter=args.special_character)
+    # Create formatter - it owns the output file
+    formatter = StreamingTextFormatter(
+        output_path=args.output_file,
+        delimiter=args.special_character
+    )
 
     # Build tree and stream content in ONE pass
     logging.info("Building file tree and streaming content...")
 
-    with open(args.output_file, "w+", encoding="utf-8") as outfile:
-        content_writer = formatter.create_content_writer(outfile) if not args.only_structure else None
-
+    with formatter:
+        # Build tree - files read ONCE, content streamed via formatter callback
         root = build_tree(
             args.directory,
             ignore_patterns=user_patterns,
@@ -90,19 +92,8 @@ def main():
             read_ignore_files=True,
             token_models=args.count_tokens or [],
             filter_type=args.filter,
-            content_processor=content_writer,
+            content_processor=formatter.write_content if not args.only_structure else None,
         )
-
-        # Now write structure at the beginning by rewriting the file
-        # Read what was written (content section)
-        outfile.seek(0)
-        content_data = outfile.read()
-
-        # Rewrite file: structure first, then content
-        outfile.seek(0)
-        outfile.truncate()
-        formatter.write_structure(root, outfile)
-        outfile.write(content_data)
 
     # Log statistics
     if not args.only_structure:
