@@ -125,23 +125,8 @@ def main():
     
     # Log token counts if requested
     if args.count_tokens:
-        # Calculate total tokens from the tree
-        def collect_tokens(node):
-            total_tokens = {}
-            if not node.is_directory and node.tokens:
-                for model, count in node.tokens.items():
-                    if model != "characters":
-                        total_tokens[model] = total_tokens.get(model, 0) + count
-
-            for child in node.children:
-                child_tokens = collect_tokens(child)
-                for model, count in child_tokens.items():
-                    total_tokens[model] = total_tokens.get(model, 0) + count
-
-            return total_tokens
-
-        total_tokens = collect_tokens(root)
-        for model, token_count in total_tokens.items():
+        # Use tree's built-in aggregation (root.tokens automatically sums all child tokens)
+        for model, token_count in root.tokens.items():
             logging.info(f"Total Token Count ({model}): {token_count}")
 
 
