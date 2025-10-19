@@ -9,8 +9,7 @@ This package provides functionality to:
 """
 
 from projectsummarizer.engine import (
-    build_tree_from_directory,
-    build_summary,
+    build_tree,
     render_ascii_tree,
 )
 
@@ -30,7 +29,9 @@ from projectsummarizer.contents.readers import (
 )
 from projectsummarizer.contents.formatters import (
     BaseFormatter,
+    BaseStreamingFormatter,
     TextFormatter,
+    StreamingTextFormatter,
 )
 from projectsummarizer.plotting import TreePlotter
 
@@ -38,8 +39,7 @@ __version__ = "0.1.0"
 
 __all__ = [
     # Main API functions
-    "build_tree_from_directory",
-    "build_summary",
+    "build_tree",
     "render_ascii_tree",
 
     # Core classes
@@ -58,7 +58,9 @@ __all__ = [
 
     # Formatters
     "BaseFormatter",
+    "BaseStreamingFormatter",
     "TextFormatter",
+    "StreamingTextFormatter",
 
     # Visualization
     "TreePlotter",

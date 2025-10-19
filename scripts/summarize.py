@@ -5,8 +5,8 @@ import argparse
 import logging
 from dotenv import load_dotenv
 
-from projectsummarizer.engine import build_summary
-from projectsummarizer.contents.formatters import TextFormatter
+from projectsummarizer.engine import build_tree
+from projectsummarizer.contents.formatters import StreamingTextFormatter
 
 
 load_dotenv()
@@ -52,12 +52,6 @@ def main():
         help="If set, only output the project structure without file contents"
     )
     parser.add_argument(
-        "--max_file_size",
-        type=int,
-        default=5 * 1024 * 1024,
-        help="Maximum file size (in bytes) to include in the summary. Default is 5 MB."
-    )
-    parser.add_argument(
         "--count_tokens",
         type=str,
         nargs="*",
@@ -71,58 +65,50 @@ def main():
         default="included",
         help="Which files to process: 'included' (default, after ignore patterns), 'removed' (ignored files), or 'all' (no filtering)"
     )
-    
+
     args = parser.parse_args()
 
-    # Build ignore patterns based on flags
-    global_patterns = []
-    
-    if not args.no_defaults:
-        # Include default patterns (security, cache, etc.)
-        # Note: These are now handled by IgnorePatternsHandler internally
-        pass
-    elif args.include_binary:
-        # If no-defaults but include-binary, only add binary patterns
-        # Note: This is handled by IgnorePatternsHandler internally
-        pass
-    
     # Add user-specified patterns
     user_patterns = []
     if args.ignore_patterns:
         user_patterns.extend(args.ignore_patterns.split(","))
 
-    # Build summary
-    root, content_map = build_summary(
-        args.directory,
-        ignore_patterns=user_patterns,
-        use_defaults=not args.no_defaults,
-        include_binary=args.include_binary,
-        read_ignore_files=True,
-        token_models=args.count_tokens or [],
-        max_file_size=args.max_file_size,
-        filter_type=args.filter,
-    )
+    # Create formatter
+    formatter = StreamingTextFormatter(delimiter=args.special_character)
 
-    # Generate formatted output
-    formatter = TextFormatter(delimiter=args.special_character)
-    output = formatter.format_summary(
-        root,
-        content_map,
-        include_structure=True,
-        include_contents=not args.only_structure,
-    )
+    # Build tree and stream content in ONE pass
+    logging.info("Building file tree and streaming content...")
 
-    # Write to output file
-    with open(args.output_file, "w", encoding='utf-8') as outfile:
-        outfile.write(output)
+    with open(args.output_file, "w+", encoding="utf-8") as outfile:
+        content_writer = formatter.create_content_writer(outfile) if not args.only_structure else None
+
+        root = build_tree(
+            args.directory,
+            ignore_patterns=user_patterns,
+            use_defaults=not args.no_defaults,
+            include_binary=args.include_binary,
+            read_ignore_files=True,
+            token_models=args.count_tokens or [],
+            filter_type=args.filter,
+            content_processor=content_writer,
+        )
+
+        # Now write structure at the beginning by rewriting the file
+        # Read what was written (content section)
+        outfile.seek(0)
+        content_data = outfile.read()
+
+        # Rewrite file: structure first, then content
+        outfile.seek(0)
+        outfile.truncate()
+        formatter.write_structure(root, outfile)
+        outfile.write(content_data)
 
     # Log statistics
-    total_files = len(content_map)
-    total_character_count = len(output)
-    
-    logging.info(f"Total files processed: {total_files}")
-    logging.info(f"Total Character Count: {total_character_count}")
-    
+    if not args.only_structure:
+        logging.info(f"Total files processed: {formatter.file_count}")
+    logging.info(f"Output written to: {args.output_file}")
+
     # Log token counts if requested
     if args.count_tokens:
         # Use tree's built-in aggregation (root.tokens automatically sums all child tokens)

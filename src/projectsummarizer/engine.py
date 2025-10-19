@@ -1,24 +1,55 @@
-from typing import List, Dict, Tuple, Optional
+from typing import List, Optional, Callable
 from projectsummarizer.files.tree.tree import FileSystemTree
 from projectsummarizer.files.tree.node import FileSystemNode
-from projectsummarizer.files.discovery import IgnorePatternsHandler, FileDiscoverer
+from projectsummarizer.files.discovery import FileDiscoverer
 from projectsummarizer.tokens import TokenCounter
-from projectsummarizer.contents.readers import ContentReaderRegistry, TextFileReader, NotebookReader
-from projectsummarizer.contents.readers.binary import BinaryFileReader
 from projectsummarizer.plotting import TreePlotter
 
 
-def _setup_file_discovery(
+def build_tree(
     directory: str,
     *,
     ignore_patterns: List[str] | None = None,
     use_defaults: bool = True,
     include_binary: bool = False,
     read_ignore_files: bool = True,
-    token_counter = None,
+    token_models: List[str] | None = None,
     filter_type: str = "included",
-) -> Tuple[IgnorePatternsHandler, FileDiscoverer, Dict[str, Dict]]:
-    """Set up file discovery components and return discovered file paths with files data."""
+    content_processor: Optional[Callable[[str, str], None]] = None,
+) -> FileSystemNode:
+    """Build a file tree from directory with optional token counting and content streaming.
+
+    This is the unified function for building file trees. It reads each file exactly once,
+    making it memory-efficient for large projects.
+
+    Args:
+        directory: Root directory to scan
+        ignore_patterns: Additional ignore patterns beyond defaults
+        use_defaults: Whether to use default ignore patterns
+        include_binary: Whether to include binary files
+        read_ignore_files: Whether to read .gitignore files
+        token_models: List of models to count tokens for (e.g., ['gpt-4o', 'claude-3-5-sonnet-20241022'])
+        filter_type: Which files to include ('included', 'removed', 'all')
+        content_processor: Optional callback function(relative_path, content) for streaming content
+
+    Returns:
+        root_node: Root of the file tree with aggregated metrics
+
+    Examples:
+        # Just build tree with token counting
+        root = build_tree("./src", token_models=["gpt-4o"])
+
+        # Build tree and stream content to file
+        def write_content(path, content):
+            output_file.write(f"### {path}\\n{content}\\n")
+        root = build_tree("./src", content_processor=write_content)
+    """
+    # Set up token counter if models provided
+    token_counter = None
+    if token_models:
+        token_counter = TokenCounter(token_models)
+
+    # Create discoverer
     discoverer = FileDiscoverer(
         root=directory,
         user_patterns=list(ignore_patterns or []),
@@ -28,103 +59,17 @@ def _setup_file_discovery(
         token_counter=token_counter,
         filter_type=filter_type
     )
-    files_data = discoverer.discover()
-    return discoverer.ignore_handler, discoverer, files_data
 
+    # Discover files and optionally process content in one pass
+    files_data = discoverer.discover(content_processor)
 
-def build_tree_from_directory(
-    directory: str,
-    *,
-    ignore_patterns: List[str] | None = None,
-    use_defaults: bool = True,
-    include_binary: bool = False,
-    read_ignore_files: bool = True,
-    token_models: List[str] | None = None,
-    filter_type: str = "included",
-) -> FileSystemNode:
-    """Build a file tree from directory with ignore patterns and optional token counting."""
-    # Set up token counter if models provided
-    token_counter = None
-    if token_models:
-        token_counter = TokenCounter(token_models)
+    # Build tree from files data
+    root = FileSystemTree(files_data).root
 
-    _, _, files_data = _setup_file_discovery(
-        directory,
-        ignore_patterns=ignore_patterns,
-        use_defaults=use_defaults,
-        include_binary=include_binary,
-        read_ignore_files=read_ignore_files,
-        token_counter=token_counter,
-        filter_type=filter_type,
-    )
+    return root
 
-    # Create tree directly from files_data
-    tree = FileSystemTree(files_data)
-    return tree.root
 
 def render_ascii_tree(root: FileSystemNode) -> str:
     """Render ASCII tree with node statistics."""
     plotter = TreePlotter()
     return plotter.plot_ascii(root)
-
-
-def build_summary(
-    directory: str,
-    *,
-    ignore_patterns: List[str] | None = None,
-    use_defaults: bool = True,
-    include_binary: bool = False,
-    read_ignore_files: bool = True,
-    token_models: List[str] | None = None,
-    max_file_size: int = 5*1024*1024,
-    filter_type: str = "included",
-) -> Tuple[FileSystemNode, Dict[str, str]]:
-    """Build tree with token counts and read file contents.
-
-    Args:
-        directory: Root directory to scan
-        ignore_patterns: Additional ignore patterns
-        use_defaults: Whether to use default ignore patterns
-        include_binary: Whether to include binary files
-        read_ignore_files: Whether to read .gitignore files
-        token_models: List of models to count tokens for (e.g., ['gpt-4o'])
-        max_file_size: Maximum file size to read (in bytes)
-
-    Returns:
-        (root_node, content_map) where content_map: {relative_path: content}
-    """
-    # Set up token counter if models provided
-    token_counter = None
-    if token_models:
-        token_counter = TokenCounter(token_models)
-
-    # Get files data from discovery
-    _, _, files_data = _setup_file_discovery(
-        directory,
-        ignore_patterns=ignore_patterns,
-        use_defaults=use_defaults,
-        include_binary=include_binary,
-        read_ignore_files=read_ignore_files,
-        token_counter=token_counter,
-        filter_type=filter_type,
-    )
-
-    # Build tree from files data
-    root = FileSystemTree(files_data).root
-
-    # Set up content readers (specialized readers first, then fallback)
-    reader_registry = ContentReaderRegistry()
-    reader_registry.register(NotebookReader())  # Specialized reader for notebooks
-    reader_registry.register(BinaryFileReader())  # Binary file reader
-    reader_registry.register(TextFileReader())  # Fallback reader for all files
-
-    # Read file contents with metadata
-    content_map: Dict[str, str] = {}
-    for relative_path, file_data in files_data.items():
-        full_path = f"{directory}/{relative_path}"
-        # Add relative_path to file_data for the binary reader
-        content = reader_registry.read(full_path, max_file_size, file_data)
-        if content:  # Only include non-empty content
-            content_map[relative_path] = content
-
-    return root, content_map

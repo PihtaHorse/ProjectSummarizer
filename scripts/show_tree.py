@@ -1,5 +1,5 @@
 import argparse
-from projectsummarizer.engine import build_tree_from_directory, render_ascii_tree
+from projectsummarizer.engine import build_tree, render_ascii_tree
 
 
 def main():
@@ -27,7 +27,7 @@ def main():
 
     user_patterns = [pattern for pattern in args.ignore_patterns.split(",") if pattern] if args.ignore_patterns else []
 
-    root = build_tree_from_directory(
+    root = build_tree(
         args.directory,
         ignore_patterns=user_patterns,
         use_defaults=not args.no_defaults,

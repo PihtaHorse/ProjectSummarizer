@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 from projectsummarizer.files.discovery.ignore import IgnorePatternsHandler
 from projectsummarizer.files.discovery.binary_detector import BinaryDetector
 
@@ -53,19 +53,37 @@ class FileDiscoverer:
             binary_detector=binary_detector
         )
 
-    def discover(self) -> Dict[str, Dict]:
-        """Return posix-style relative file paths with files data based on filter type.
+    def discover(self, content_processor: Optional[Callable[[str, str], None]] = None) -> Dict[str, Dict]:
+        """Discover files and optionally process their content via a callback.
 
-        Returns a dictionary mapping relative paths to files data containing:
-        - is_binary: bool - whether the file is binary
-        - size: int - file size in bytes
-        - flags: set - file flags (e.g., 'binary')
-        - tokens: dict - token counts (if token_counter provided)
+        This method reads each file exactly once and allows streaming processing
+        of file contents without storing all content in memory.
+
+        Args:
+            content_processor: Optional callback function(relative_path, content)
+                             called for each non-binary file after reading.
+                             If None, files are still read for token counting if token_counter is set.
+
+        Returns:
+            Dictionary mapping relative paths to file metadata containing:
+            - is_binary: bool - whether the file is binary
+            - size: int - file size in bytes
+            - flags: set - file flags (e.g., 'binary')
+            - tokens: dict - token counts (if token_counter provided)
 
         Filter types:
         - "included": files that pass ignore patterns (default)
         - "removed": files that are ignored by patterns
         - "all": all files regardless of ignore patterns
+
+        Example:
+            # Without callback (just gather metadata)
+            files_data = discoverer.discover()
+
+            # With callback (stream content)
+            def write_content(path, content):
+                output_file.write(f"\\n### {path}\\n{content}\\n")
+            files_data = discoverer.discover(write_content)
         """
         files_data: Dict[str, Dict] = {}
         for current_directory, _, files in os.walk(self.root, topdown=True):
@@ -77,15 +95,52 @@ class FileDiscoverer:
                 ignore_data = self.ignore_handler.is_ignored(relative_path, full_path)
 
                 # Apply filter logic
-                should_include = self._should_include_file(ignore_data["is_ignored"])
+                should_include = self.should_include_file(ignore_data["is_ignored"])
                 if not should_include:
                     continue
 
-                file_data = self._create_file_data(full_path, ignore_data["is_binary"])
+                # Get file size
+                try:
+                    size = os.path.getsize(full_path)
+                except OSError:
+                    size = 0
+
+                # Prepare file data
+                file_data = {
+                    "is_binary": ignore_data["is_binary"],
+                    "size": size,
+                    "flags": set()
+                }
+
+                # Add binary flag if present
+                if ignore_data["is_binary"]:
+                    file_data["flags"].add("binary")
+
+                # Read file once - for both token counting AND content processing
+                content = None
+                if not ignore_data["is_binary"]:
+                    try:
+                        with open(full_path, "r", encoding="utf-8") as file:
+                            content = file.read()
+                    except (OSError, UnicodeDecodeError):
+                        content = None
+
+                # Add token counts if token_counter is provided
+                if self.token_counter and content is not None:
+                    tokens = self.token_counter.count_tokens(content)
+                    file_data["tokens"] = tokens
+                else:
+                    file_data["tokens"] = {}
+
+                # Call content processor if provided and content was read
+                if content_processor and content is not None:
+                    content_processor(relative_path, content)
+
                 files_data[relative_path] = file_data
+
         return files_data
-    
-    def _should_include_file(self, is_ignored: bool) -> bool:
+
+    def should_include_file(self, is_ignored: bool) -> bool:
         """Determine if a file should be included based on filter type."""
         if self.filter_type == "all":
             return True
@@ -93,37 +148,4 @@ class FileDiscoverer:
             return is_ignored
         else:  # "included" (default)
             return not is_ignored
-    
-    def _create_file_data(self, full_path: str, is_binary: bool) -> Dict:
-        """Create file data dictionary for a given file."""
-        # Get file size
-        try:
-            size = os.path.getsize(full_path)
-        except OSError:
-            size = 0
-        
-        # Prepare file data
-        file_data = {
-            "is_binary": is_binary,
-            "size": size,
-            "flags": set()
-        }
-        
-        # Add binary flag if present
-        if is_binary:
-            file_data["flags"].add("binary")
-        
-        # Add token counts if token_counter is provided
-        if self.token_counter:
-            try:
-                with open(full_path, "r", encoding="utf-8") as file:
-                    content = file.read()
-                tokens = self.token_counter.count_tokens(content)
-                file_data["tokens"] = tokens
-            except (OSError, UnicodeDecodeError):
-                file_data["tokens"] = {}
-        else:
-            file_data["tokens"] = {}
-
-        return file_data
 
