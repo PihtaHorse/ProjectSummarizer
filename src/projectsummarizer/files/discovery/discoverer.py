@@ -6,9 +6,25 @@ from projectsummarizer.files.discovery.binary_detector import BinaryDetector
 
 
 class FileDiscoverer:
-    """Discovers files in a directory tree, respecting ignore patterns.
+    """Discovers files and gathers their metadata from a directory tree.
 
-    Uses a centralized IgnorePatternsHandler that handles all ignore logic.
+    This class is responsible for ALL file system I/O and metadata collection.
+    It does NOT build tree structures - that's the job of FileSystemTree.
+
+    Responsibilities:
+    - Walk directory tree (file system traversal)
+    - Apply ignore patterns (via IgnorePatternsHandler)
+    - Detect binary files
+    - Gather file sizes
+    - Read files and count tokens (if token_counter provided)
+    - Return flat dictionary of file metadata
+
+    Not responsible for:
+    - Building tree structures (use FileSystemTree)
+    - Tree node creation (use FileSystemTree)
+    - Computing aggregate metrics (use FileSystemTree)
+
+    The output of this class is meant to be consumed by FileSystemTree constructor.
     """
 
     def __init__(

@@ -59,7 +59,7 @@ def build_tree_from_directory(
     )
 
     # Create tree directly from files_data
-    tree = FileSystemTree.from_files_data(files_data)
+    tree = FileSystemTree(files_data)
     return tree.root
 
 def render_ascii_tree(root: FileSystemNode) -> str:
@@ -110,7 +110,7 @@ def build_summary(
     )
 
     # Build tree from files data
-    root = FileSystemTree.from_files_data(files_data).root
+    root = FileSystemTree(files_data).root
 
     # Set up content readers (specialized readers first, then fallback)
     reader_registry = ContentReaderRegistry()
