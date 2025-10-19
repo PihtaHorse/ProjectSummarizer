@@ -49,6 +49,32 @@ class StreamingTextFormatter:
             self.output_file.write(content)
             self.output_file.write(f"\n{self.delimiter}\n\n")
 
+    def prepend(self, content: str) -> None:
+        """Prepend content to the beginning of the output file.
+
+        This method reads the current file content, prepends the new content,
+        and writes everything back. Use this sparingly as it requires
+        reading the entire file into memory.
+
+        Args:
+            content: Content to prepend to the file
+        """
+        if not self.output_file:
+            raise RuntimeError("Cannot prepend: file is not open")
+
+        # Flush any pending writes
+        self.output_file.flush()
+
+        # Read current content
+        with open(self.output_path, 'r', encoding='utf-8') as f:
+            current_content = f.read()
+
+        # Write prepended content
+        with open(self.output_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+            if current_content:
+                f.write('\n' + current_content)
+
     def __enter__(self):
         """Context manager entry."""
         self.open()

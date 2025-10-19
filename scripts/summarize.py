@@ -5,7 +5,7 @@ import argparse
 import logging
 from dotenv import load_dotenv
 
-from projectsummarizer.engine import build_tree
+from projectsummarizer.engine import build_tree, render_ascii_tree
 from projectsummarizer.contents.formatters import StreamingTextFormatter
 
 
@@ -94,6 +94,10 @@ def main():
             filter_type=args.filter,
             content_processor=formatter.write_content if not args.only_structure else None,
         )
+
+        # Prepend tree structure at the beginning
+        tree_structure = render_ascii_tree(root)
+        formatter.prepend(f"Project Structure:\n{tree_structure}\n")
 
     # Log statistics
     if not args.only_structure:
