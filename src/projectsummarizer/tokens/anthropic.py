@@ -1,7 +1,10 @@
 """Anthropic token counting utilities."""
 
+import logging
 import anthropic
 import os
+
+logger = logging.getLogger(__name__)
 
 
 def get_anthropic_api_key():
@@ -28,4 +31,4 @@ def list_anthropic_models():
     """
     client = anthropic.Anthropic(api_key=get_anthropic_api_key())
     for model in client.models.list():
-        print(f"Anthropic Model ID: {model.id}")
+        logger.info(f"Anthropic Model ID: {model.id}")

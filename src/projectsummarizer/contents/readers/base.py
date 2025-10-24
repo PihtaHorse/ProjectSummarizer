@@ -3,6 +3,9 @@
 from abc import ABC, abstractmethod
 from typing import List
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class BaseContentReader(ABC):
@@ -49,8 +52,7 @@ class ContentReaderRegistry:
                 if os.path.getsize(file_path) > max_size:
                     return ""
             except OSError as e:
-                print(f"Add logging here! Exception: {e}")
-                print(f"Some problem with the file {file_path}")
+                logger.warning(f"Cannot access file {file_path}: {e}")
                 return ""
         
         # Try readers in sequence until one successfully reads the file
