@@ -5,6 +5,10 @@ import argparse
 import sys
 from prettytable import PrettyTable
 from projectsummarizer.files.discovery.discoverer import FileDiscoverer
+from projectsummarizer.cli import (
+    add_file_selection_args,
+    add_ignore_logic_args,
+)
 from dotenv import load_dotenv
 import logging
 
@@ -112,50 +116,19 @@ def main():
     parser = argparse.ArgumentParser(
         description="Show active patterns and binary extensions",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  %(prog)s --directory .
-  %(prog)s --directory . --ignore_patterns "*.tmp,*.log"
-        """
     )
-    
-    parser.add_argument(
-        "--directory",
-        type=str,
-        default=".",
-        help="Directory to analyze (default: current directory)"
-    )
-    
-    parser.add_argument(
-        "--ignore_patterns",
-        type=str,
-        help="Additional ignore patterns (comma-separated)"
-    )
-    
-    parser.add_argument(
-        "--no_defaults",
-        action="store_true",
-        help="Don't use default ignore patterns"
-    )
-    
-    parser.add_argument(
-        "--no_gitignore",
-        action="store_true",
-        help="Don't read .gitignore files"
-    )
-    
+
+    # Add common argument groups
+    add_file_selection_args(parser, directory_required=False, directory_default=".")
+    add_ignore_logic_args(parser)
+
+    # Script-specific arguments
     parser.add_argument(
         "--show_ignored_files",
         action="store_true",
         help="Show detailed list of ignored files"
     )
-    
-    parser.add_argument(
-        "--include_binary",
-        action="store_true",
-        help="Include binary files (don't block them)"
-    )
-    
+
     args = parser.parse_args()
     
     # Parse additional patterns

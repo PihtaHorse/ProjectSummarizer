@@ -7,6 +7,11 @@ from dotenv import load_dotenv
 
 from projectsummarizer.engine import build_tree, render_ascii_tree
 from projectsummarizer.contents.formatters import StreamingTextFormatter
+from projectsummarizer.cli import (
+    add_file_selection_args,
+    add_ignore_logic_args,
+    add_token_counting_args,
+)
 
 
 load_dotenv()
@@ -17,8 +22,15 @@ def main():
     parser = argparse.ArgumentParser(
         description="Summarize project files, optionally including their contents."
     )
+
+    # Add common argument groups
+    add_file_selection_args(parser, directory_required=True)
+    add_ignore_logic_args(parser)
+    add_token_counting_args(parser)
+
+    # Script-specific arguments
     parser.add_argument(
-        "--directory", type=str, required=True, help="Directory path containing the files"
+        "--output_file", type=str, default="summary.txt", required=False, help="Output file to write the contents"
     )
     parser.add_argument(
         "--special_character",
@@ -28,41 +40,9 @@ def main():
         help="Special character to use as a delimiter for file content",
     )
     parser.add_argument(
-        "--output_file", type=str, default="summary.txt", required=False, help="Output file to write the contents"
-    )
-    parser.add_argument(
-        "--ignore_patterns",
-        type=str,
-        default="",
-        help="Comma-separated list of additional patterns to ignore (added to defaults)",
-    )
-    parser.add_argument(
-        "--include_binary",
-        action="store_true",
-        help="Include binary file types (images, videos, audio, archives, executables, etc.) - by default these are excluded",
-    )
-    parser.add_argument(
-        "--no_defaults",
-        action="store_true",
-        help="Don't use default ignore patterns, only use patterns from --ignore_patterns",
-    )
-    parser.add_argument(
         "--only_structure",
         action="store_true",
         help="If set, only output the project structure without file contents"
-    )
-    parser.add_argument(
-        "--count_tokens",
-        type=str,
-        nargs="*",
-        help="Specify one or more models to count tokens for. Supports OpenAI (e.g. 'gpt-4o'), Anthropic (e.g. 'claude-3-5-sonnet-20241022'), and Google (e.g. 'gemini-1.5-pro-002') models."
-    )
-    parser.add_argument(
-        "--filter",
-        type=str,
-        choices=["included", "removed", "all"],
-        default="included",
-        help="Which files to process: 'included' (default, after ignore patterns), 'removed' (ignored files), or 'all' (no filtering)"
     )
 
     args = parser.parse_args()

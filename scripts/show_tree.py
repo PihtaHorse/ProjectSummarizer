@@ -1,5 +1,10 @@
 import argparse
 from projectsummarizer.engine import build_tree, render_ascii_tree
+from projectsummarizer.cli import (
+    add_file_selection_args,
+    add_ignore_logic_args,
+    add_token_counting_args,
+)
 from dotenv import load_dotenv
 import logging
 
@@ -10,24 +15,12 @@ logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 def main():
     parser = argparse.ArgumentParser(description="Show project tree with byte sizes and optional token counts.")
-    parser.add_argument("--directory", required=True, help="Project root")
-    parser.add_argument("--ignore_patterns", default="", help="Comma-separated extra patterns")
-    parser.add_argument("--no_defaults", action="store_true", help="Do not apply default ignore patterns")
-    parser.add_argument("--include_binary", action="store_true", help="Include binary files")
-    parser.add_argument("--no_gitignore", action="store_true", help="Do not read .gitignore files")
-    parser.add_argument(
-        "--filter",
-        type=str,
-        choices=["included", "removed", "all"],
-        default="included",
-        help="Which files to show: 'included' (default, after ignore patterns), 'removed' (ignored files), or 'all' (no filtering)"
-    )
-    parser.add_argument(
-        "--count_tokens",
-        type=str,
-        nargs="*",
-        help="Specify one or more models to count tokens for. Supports OpenAI (e.g. 'gpt-4o'), Anthropic (e.g. 'claude-3-5-sonnet-20241022'), and Google (e.g. 'gemini-1.5-pro-002') models."
-    )
+
+    # Add common argument groups
+    add_file_selection_args(parser, directory_required=True)
+    add_ignore_logic_args(parser)
+    add_token_counting_args(parser)
+
     args = parser.parse_args()
 
     user_patterns = [pattern for pattern in args.ignore_patterns.split(",") if pattern] if args.ignore_patterns else []
