@@ -10,15 +10,17 @@ class StreamingTextFormatter:
     streamed via callbacks, and closes the file.
     """
 
-    def __init__(self, output_path: str, delimiter: str = "```"):
+    def __init__(self, output_path: str, delimiter: str = "```", delimiter_replacement: str = "'''"):
         """Initialize formatter and open output file.
 
         Args:
             output_path: Path to the output file to create/overwrite
             delimiter: String to use for delimiting file contents
+            delimiter_replacement: String to replace delimiter with in content to prevent escape
         """
         self.output_path = output_path
         self.delimiter = delimiter
+        self.delimiter_replacement = delimiter_replacement
         self.file_count = 0
         self.output_file: TextIO = None
 
@@ -46,8 +48,8 @@ class StreamingTextFormatter:
         if content and self.output_file:
             self.file_count += 1
 
-            # Write file path
-            self.output_file.write(f"{relative_path}:\n")
+            # Write file path as markdown header
+            self.output_file.write(f"## {relative_path}\n\n")
 
             # Write metadata block if any metadata exists
             if metadata:
@@ -65,7 +67,9 @@ class StreamingTextFormatter:
 
             # Write file content
             self.output_file.write(f"{self.delimiter}\n")
-            self.output_file.write(content)
+            # Replace delimiter in content to prevent breaking out of the block
+            safe_content = content.replace(self.delimiter, self.delimiter_replacement)
+            self.output_file.write(safe_content)
             self.output_file.write(f"\n{self.delimiter}\n\n")
 
     def prepend(self, content: str) -> None:

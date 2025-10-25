@@ -44,6 +44,13 @@ def main():
         help="Special character to use as a delimiter for file content",
     )
     parser.add_argument(
+        "--delimiter_replacement",
+        type=str,
+        required=False,
+        default="'''",
+        help="String to replace delimiter with in file contents to prevent breaking out of blocks",
+    )
+    parser.add_argument(
         "--only_structure",
         action="store_true",
         help="If set, only output the project structure without file contents"
@@ -74,7 +81,8 @@ def main():
     # Create formatter - it owns the output file
     formatter = StreamingTextFormatter(
         output_path=args.output_file,
-        delimiter=args.special_character
+        delimiter=args.special_character,
+        delimiter_replacement=args.delimiter_replacement
     )
 
     # Build tree and stream content in ONE pass
@@ -97,7 +105,7 @@ def main():
 
         # Prepend tree structure at the beginning (without stats for cleaner output)
         tree_structure = render_ascii_tree(root, show_stats=False, sort_by=args.sort_by)
-        formatter.prepend(f"Project Structure:\n{tree_structure}\n")
+        formatter.prepend(f"Project Structure:\n{args.special_character}\n{tree_structure}\n{args.special_character}\n")
 
     # Log statistics
     if not args.only_structure:
