@@ -104,7 +104,9 @@ class FileSystemTree:
             file_node.extension = self.extract_extension(relative_path)
             file_node.set_file_metrics(
                 size=data.get("size", 0),
-                tokens=data.get("tokens", {})
+                tokens=data.get("tokens", {}),
+                created=data.get("created"),
+                modified=data.get("modified")
             )
             for flag in data.get("flags", set()):
                 file_node.mark_flag(flag)

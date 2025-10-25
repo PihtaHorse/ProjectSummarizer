@@ -114,6 +114,24 @@ def add_sorting_args(parser: argparse.ArgumentParser) -> None:
         default="name",
         dest="sort_by",
         help="Sort files and directories by: 'name' (alphabetical, default), "
-             "'size' (largest first), or any token model name (e.g., 'gpt-4o'). "
-             "When using a token model name, it must be included in --count_tokens."
+             "'size' (largest first), 'created' (newest first), 'modified' (newest first), "
+             "or any token model name (e.g., 'gpt-4o'). "
+             "When using a token model name, it must be included in --count_tokens. "
+             "When using 'created' or 'modified', --include-dates must be enabled."
+    )
+
+
+def add_date_tracking_args(parser: argparse.ArgumentParser) -> None:
+    """Add date tracking arguments to parser.
+
+    Args:
+        parser: ArgumentParser to add arguments to
+    """
+    parser.add_argument(
+        "--include-dates",
+        action="store_true",
+        dest="include_dates",
+        help="Include file creation and modification dates. "
+             "Uses git history when available, falls back to filesystem timestamps. "
+             "Dates are shown in YYYY-MM-DD format. Note: git operations may be slow on large repositories."
     )

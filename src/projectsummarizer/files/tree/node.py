@@ -44,8 +44,12 @@ class FileSystemNode(NodeMixin):
         self.flags: Set[str] = set()
         self.file_size: int = 0
         self.file_tokens: Dict[str, int] = {}
+        self.file_created: Optional[str] = None
+        self.file_modified: Optional[str] = None
         self.aggregate_size: int = 0
         self.aggregate_tokens: Dict[str, int] = {}
+        self.aggregate_created: Optional[str] = None
+        self.aggregate_modified: Optional[str] = None
         self.dirty: bool = True
 
     # ---- metrics ----
@@ -65,12 +69,37 @@ class FileSystemNode(NodeMixin):
             self.recompute_aggregates_for_node()
         return self.aggregate_tokens
 
-    def set_file_metrics(self, *, size: Optional[int] = None, tokens: Optional[Dict[str, int]] = None) -> None:
+    @property
+    def created(self) -> Optional[str]:
+        if not self.is_directory:
+            return self.file_created
+        if self.dirty:
+            self.recompute_aggregates_for_node()
+        return self.aggregate_created
+
+    @property
+    def modified(self) -> Optional[str]:
+        if not self.is_directory:
+            return self.file_modified
+        if self.dirty:
+            self.recompute_aggregates_for_node()
+        return self.aggregate_modified
+
+    def set_file_metrics(
+        self,
+        *,
+        size: Optional[int] = None,
+        tokens: Optional[Dict[str, int]] = None,
+        created: Optional[str] = None,
+        modified: Optional[str] = None
+    ) -> None:
         """Set metrics for a file node.
 
         Args:
             size: File size in bytes
             tokens: Token counts by model name
+            created: Creation date in YYYY-MM-DD format
+            modified: Modification date in YYYY-MM-DD format
 
         Raises:
             ValueError: If called on a directory node
@@ -81,6 +110,10 @@ class FileSystemNode(NodeMixin):
             self.file_size = int(size)
         if tokens is not None:
             self.file_tokens = {k: int(v) for k, v in (tokens or {}).items()}
+        if created is not None:
+            self.file_created = created
+        if modified is not None:
+            self.file_modified = modified
         self.mark_dirty_up()
 
     def mark_flag(self, flag: str) -> None:
@@ -116,8 +149,10 @@ class FileSystemNode(NodeMixin):
         Aggregates include:
         - size: sum of children's sizes
         - tokens: key-wise sum of children's token dicts
+        - created: earliest (min) created date from children
+        - modified: latest (max) modified date from children
 
-        This is called automatically when accessing size/tokens on a dirty directory.
+        This is called automatically when accessing size/tokens/dates on a dirty directory.
         """
         # Aggregate sizes
         self.aggregate_size = sum(child.size for child in self.children)
@@ -129,6 +164,15 @@ class FileSystemNode(NodeMixin):
                 aggregated[key] = aggregated.get(key, 0) + int(value)
         self.aggregate_tokens = aggregated
 
+        # Aggregate dates
+        # Created: earliest (minimum) date from children
+        created_dates = [child.created for child in self.children if child.created]
+        self.aggregate_created = min(created_dates) if created_dates else None
+
+        # Modified: latest (maximum) date from children
+        modified_dates = [child.modified for child in self.children if child.modified]
+        self.aggregate_modified = max(modified_dates) if modified_dates else None
+
         self.dirty = False
 
     def get_file_paths(self) -> List[str]:
@@ -136,15 +180,19 @@ class FileSystemNode(NodeMixin):
         return [node.relative_path for node in PreOrderIter(self)
                 if not node.is_directory and node.relative_path]
 
-    def stats(self) -> Dict[str, int]:
+    def stats(self) -> Dict:
         """Get statistics for this node as a dictionary.
-        
+
         Returns:
-            Dictionary with 'size' and any available token counts
+            Dictionary with 'size', any available token counts, and dates (if available)
         """
         stats_dict = {"size": self.size}
         if self.tokens:
             stats_dict.update(self.tokens)
+        if self.created:
+            stats_dict["created"] = self.created
+        if self.modified:
+            stats_dict["modified"] = self.modified
         return stats_dict
 
     # ---- debugging ----

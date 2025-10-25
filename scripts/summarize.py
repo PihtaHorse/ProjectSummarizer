@@ -12,6 +12,7 @@ from projectsummarizer.cli import (
     add_ignore_logic_args,
     add_token_counting_args,
     add_sorting_args,
+    add_date_tracking_args,
 )
 
 
@@ -29,6 +30,7 @@ def main():
     add_ignore_logic_args(parser)
     add_token_counting_args(parser)
     add_sorting_args(parser)
+    add_date_tracking_args(parser)
 
     # Script-specific arguments
     parser.add_argument(
@@ -49,8 +51,15 @@ def main():
 
     args = parser.parse_args()
 
-    # Validate sorting arguments - if sort_by is not "name" or "size", treat it as a token model
-    if args.sort_by not in ["name", "size"]:
+    # Validate sorting arguments
+    if args.sort_by in ["created", "modified"]:
+        # Date sorting requires --include-dates
+        if not args.include_dates:
+            parser.error(
+                f"When sorting by '{args.sort_by}', --include-dates must be enabled"
+            )
+    elif args.sort_by not in ["name", "size"]:
+        # Treat as token model - must be in count_tokens
         if not args.count_tokens or args.sort_by not in args.count_tokens:
             parser.error(
                 f"When sorting by token model '{args.sort_by}', "
@@ -78,11 +87,12 @@ def main():
             ignore_patterns=user_patterns,
             use_defaults=not args.no_defaults,
             include_binary=args.include_binary,
-            read_ignore_files=True,
+            read_ignore_files=not args.no_gitignore,
             token_models=args.count_tokens or [],
             filter_type=args.filter,
             content_processor=formatter.write_content if not args.only_structure else None,
             level=args.level,
+            include_dates=args.include_dates,
         )
 
         # Prepend tree structure at the beginning (without stats for cleaner output)

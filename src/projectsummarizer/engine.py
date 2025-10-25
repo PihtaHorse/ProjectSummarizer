@@ -17,6 +17,7 @@ def build_tree(
     filter_type: str = "included",
     content_processor: Optional[Callable[[str, str], None]] = None,
     level: Optional[int] = None,
+    include_dates: bool = False,
 ) -> FileSystemNode:
     """Build a file tree from directory with optional token counting and content streaming.
 
@@ -33,6 +34,7 @@ def build_tree(
         filter_type: Which files to include ('included', 'removed', 'all')
         content_processor: Optional callback function(relative_path, content) for streaming content
         level: Descend only level directories deep (root is level 0). None means unlimited (default)
+        include_dates: Whether to include file creation and modification dates (from git or filesystem)
 
     Returns:
         root_node: Root of the file tree with aggregated metrics
@@ -63,7 +65,8 @@ def build_tree(
         include_binary=include_binary,
         token_counter=token_counter,
         filter_type=filter_type,
-        level=level
+        level=level,
+        include_dates=include_dates
     )
 
     # Discover files and optionally process content in one pass

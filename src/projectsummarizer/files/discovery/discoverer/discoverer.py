@@ -3,10 +3,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Callable
 from projectsummarizer.files.discovery.ignore import IgnorePatternsHandler
 from projectsummarizer.files.discovery.binary_detector import BinaryDetector
+from projectsummarizer.files.discovery.discoverer.date_time_mixin import DateTimeMixin
 from projectsummarizer.contents.readers import ContentReaderRegistry, NotebookReader, BinaryFileReader, TextFileReader
 
 
-class FileDiscoverer:
+class FileDiscoverer(DateTimeMixin):
     """Discovers files and gathers their metadata from a directory tree.
 
     This class is responsible for ALL file system I/O and metadata collection.
@@ -39,12 +40,17 @@ class FileDiscoverer:
         binary_detector: Optional[BinaryDetector] = None,
         token_counter = None,
         filter_type: str = "included",
-        level: Optional[int] = None
+        level: Optional[int] = None,
+        include_dates: bool = False
     ) -> None:
         self.root = Path(root)
         self.token_counter = token_counter
         self.filter_type = filter_type
         self.level = level
+        self.include_dates = include_dates
+
+        # Check if we're in a git repository
+        self._is_git_repo_cached = None
 
         # Create the centralized ignore handler
         self.ignore_handler = IgnorePatternsHandler(
@@ -144,6 +150,14 @@ class FileDiscoverer:
                     file_data["tokens"] = tokens
                 else:
                     file_data["tokens"] = {}
+
+                # Add file dates if requested
+                if self.include_dates:
+                    created, modified = self._get_file_dates(full_path)
+                    if created:
+                        file_data["created"] = created
+                    if modified:
+                        file_data["modified"] = modified
 
                 # Call content processor if provided and content was read
                 if content_processor and content:
