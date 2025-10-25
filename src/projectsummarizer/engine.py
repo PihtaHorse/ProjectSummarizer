@@ -16,6 +16,7 @@ def build_tree(
     token_models: List[str] | None = None,
     filter_type: str = "included",
     content_processor: Optional[Callable[[str, str], None]] = None,
+    level: Optional[int] = None,
 ) -> FileSystemNode:
     """Build a file tree from directory with optional token counting and content streaming.
 
@@ -31,6 +32,7 @@ def build_tree(
         token_models: List of models to count tokens for (e.g., ['gpt-4o', 'claude-3-5-sonnet-20241022'])
         filter_type: Which files to include ('included', 'removed', 'all')
         content_processor: Optional callback function(relative_path, content) for streaming content
+        level: Descend only level directories deep (root is level 0). None means unlimited (default)
 
     Returns:
         root_node: Root of the file tree with aggregated metrics
@@ -43,6 +45,9 @@ def build_tree(
         def write_content(path, content):
             output_file.write(f"### {path}\\n{content}\\n")
         root = build_tree("./src", content_processor=write_content)
+
+        # Build tree with level limit
+        root = build_tree("./src", level=2)
     """
     # Set up token counter if models provided
     token_counter = None
@@ -57,7 +62,8 @@ def build_tree(
         read_ignore_files=read_ignore_files,
         include_binary=include_binary,
         token_counter=token_counter,
-        filter_type=filter_type
+        filter_type=filter_type,
+        level=level
     )
 
     # Discover files and optionally process content in one pass

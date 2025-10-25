@@ -38,11 +38,13 @@ class FileDiscoverer:
         include_binary: bool = False,
         binary_detector: Optional[BinaryDetector] = None,
         token_counter = None,
-        filter_type: str = "included"
+        filter_type: str = "included",
+        level: Optional[int] = None
     ) -> None:
         self.root = Path(root)
         self.token_counter = token_counter
         self.filter_type = filter_type
+        self.level = level
 
         # Create the centralized ignore handler
         self.ignore_handler = IgnorePatternsHandler(
@@ -98,6 +100,14 @@ class FileDiscoverer:
             for filename in files:
                 relative_path = (Path(current_directory) / filename).relative_to(self.root).as_posix()
                 full_path = (Path(current_directory) / filename).as_posix()
+
+                # Check level limit if specified
+                if self.level is not None:
+                    # Calculate level by counting path separators
+                    # Root directory files have level 0
+                    depth = len(Path(relative_path).parts) - 1
+                    if depth > self.level:
+                        continue
 
                 # Use centralized ignore logic
                 ignore_data = self.ignore_handler.is_ignored(relative_path, full_path)

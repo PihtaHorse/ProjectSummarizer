@@ -39,6 +39,15 @@ def add_file_selection_args(
              "'removed' (ignored files), or 'all' (no filtering)"
     )
 
+    parser.add_argument(
+        "-L", "--level",
+        type=int,
+        default=None,
+        dest="level",
+        help="Descend only level directories deep (root is level 0). "
+             "None means unlimited depth (default)."
+    )
+
 
 def add_ignore_logic_args(parser: argparse.ArgumentParser) -> None:
     """Add ignore pattern and filtering arguments to parser.

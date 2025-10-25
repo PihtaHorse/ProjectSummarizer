@@ -33,6 +33,7 @@ def main():
         read_ignore_files=not args.no_gitignore,
         token_models=args.count_tokens or [],
         filter_type=args.filter,
+        level=args.level,
     )
     print(render_ascii_tree(root, show_stats=True))
 

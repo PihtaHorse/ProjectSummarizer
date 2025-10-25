@@ -72,6 +72,7 @@ def main():
             token_models=args.count_tokens or [],
             filter_type=args.filter,
             content_processor=formatter.write_content if not args.only_structure else None,
+            level=args.level,
         )
 
         # Prepend tree structure at the beginning (without stats for cleaner output)
