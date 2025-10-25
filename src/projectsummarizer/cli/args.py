@@ -51,7 +51,10 @@ def add_ignore_logic_args(parser: argparse.ArgumentParser) -> None:
         type=str,
         default="",
         dest="ignore",
-        help="Comma-separated patterns to ignore (e.g., '*.log,temp*'). Added to defaults unless --no_defaults is used."
+        help="Comma-separated patterns to ignore (e.g., '*.log,temp*'). "
+             "Supports gitignore-style negation with '!' prefix to create exceptions "
+             "(e.g., '*.log,!important.log' ignores all .log files except important.log). "
+             "Added to defaults unless --no_defaults is used."
     )
 
     parser.add_argument(

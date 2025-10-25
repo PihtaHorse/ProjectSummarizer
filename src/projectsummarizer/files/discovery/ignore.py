@@ -104,17 +104,95 @@ class IgnorePatternsHandler:
         
         return PathSpec.from_lines("gitwildmatch", pats)
 
+    def _check_binary_file(self, full_path: str) -> tuple[bool, Optional[str]]:
+        """Check if file is binary and track its extension.
+
+        Args:
+            full_path: Full path to the file
+
+        Returns:
+            Tuple of (is_binary, extension)
+        """
+        is_binary = self.binary_detector.is_binary(full_path)
+        if is_binary:
+            ext = Path(full_path).suffix.lower()
+            if ext:
+                self._binary_extensions.add(ext)
+            return is_binary, ext
+        return is_binary, None
+
+    def _categorize_matched_patterns(self, rel_path: str) -> tuple[List[str], List[str]]:
+        """Categorize patterns into positive (ignore) and negation (exception) lists.
+
+        Args:
+            rel_path: Relative path for pattern matching
+
+        Returns:
+            Tuple of (positive_patterns, negation_patterns)
+        """
+        positive_patterns = []  # Normal ignore patterns that matched
+        negation_patterns = []  # Negation patterns (!pattern) that matched
+
+        for pattern_obj in self._spec.patterns:
+            if pattern_obj.match_file(rel_path):
+                pattern_str = str(pattern_obj.pattern)
+                if pattern_obj.include is False:  # Negation pattern (starts with !)
+                    negation_patterns.append(pattern_str)
+                else:  # Normal ignore pattern
+                    positive_patterns.append(pattern_str)
+
+        return positive_patterns, negation_patterns
+
+    def _update_pattern_statistics(self, patterns: List[str]) -> None:
+        """Update pattern match statistics.
+
+        Args:
+            patterns: List of patterns to count
+        """
+        for pattern in patterns:
+            self._pattern_matches[pattern] = self._pattern_matches.get(pattern, 0) + 1
+
+    def _process_pattern_matches(self, rel_path: str, ignore_reasons: List[Dict]) -> List[str]:
+        """Process pattern matching and update statistics.
+
+        Args:
+            rel_path: Relative path for pattern matching
+            ignore_reasons: List to append ignore reasons to (modified in place)
+
+        Returns:
+            List of matching patterns for tracking
+        """
+        # Use PathSpec's match_file to get correct ignore decision (handles negation)
+        is_ignored_by_patterns = self._spec.match_file(rel_path)
+
+        # Track which patterns matched (for statistics and debugging)
+        positive_patterns, negation_patterns = self._categorize_matched_patterns(rel_path)
+
+        # Determine which patterns to count for statistics
+        # - If file is ignored: count positive patterns (they caused the ignore)
+        # - If file is NOT ignored but has negations: count negation patterns (they saved it)
+        if is_ignored_by_patterns:
+            self._update_pattern_statistics(positive_patterns)
+            ignore_reasons.append({"type": "pattern", "patterns": positive_patterns})
+            return positive_patterns
+        elif negation_patterns:
+            self._update_pattern_statistics(negation_patterns)
+            # Note: file is NOT ignored, so don't add to ignore_reasons
+            return negation_patterns
+        else:
+            return []
+
     def is_ignored(self, rel_path: str, full_path: str) -> Dict:
         """Check if a file should be ignored and return detailed information.
-        
+
         This is the main method that FileScanner will call.
         It handles binary file detection first, then pattern-based ignores.
         Stores complete data for all files (ignored or not).
-        
+
         Args:
             rel_path: Relative path for pattern matching
             full_path: Full path for binary detection
-            
+
         Returns:
             Dictionary with:
             - is_ignored: bool - whether the file should be ignored
@@ -123,44 +201,27 @@ class IgnorePatternsHandler:
         """
         ignore_reasons = []
         matching_patterns = []
-        
-        # FIRST: Check if file is binary
-        is_binary = self.binary_detector.is_binary(full_path)
-        if is_binary:
-            # Track binary extension
-            ext = Path(full_path).suffix.lower()
-            if ext:
-                self._binary_extensions.add(ext)
-            
-            # If binary and not including binary files, ignore it
-            if not self.include_binary:
-                ignore_reasons.append({"type": "binary", "extension": ext})
-                
-                # Create ignore data for binary files (no pattern matching needed)
-                ignore_data = {
-                    "is_ignored": True,
-                    "is_binary": is_binary,
-                    "ignore_reasons": ignore_reasons,
-                    "matched_patterns": [],
-                    "binary_extension": ext
-                }
-                
-                # Store complete data for all files (ignored or not)
-                self._checked_files[rel_path] = ignore_data
-                return ignore_data
-        
-        # SECOND: Only check pattern-based ignores for non-binary files
+
+        # Check if file is binary
+        is_binary, binary_ext = self._check_binary_file(full_path)
+
+        # If binary and not including binary files, return early
+        if is_binary and not self.include_binary:
+            ignore_reasons.append({"type": "binary", "extension": binary_ext})
+            ignore_data = {
+                "is_ignored": True,
+                "is_binary": is_binary,
+                "ignore_reasons": ignore_reasons,
+                "matched_patterns": [],
+                "binary_extension": binary_ext
+            }
+            self._checked_files[rel_path] = ignore_data
+            return ignore_data
+
+        # Check pattern-based ignores for non-binary files
         if not is_binary:
-            for pattern_obj in self._spec.patterns:
-                if pattern_obj.match_file(rel_path):
-                    pattern_str = str(pattern_obj.pattern)
-                    matching_patterns.append(pattern_str)
-                    # Track pattern matches
-                    self._pattern_matches[pattern_str] = self._pattern_matches.get(pattern_str, 0) + 1
-            
-            if matching_patterns:
-                ignore_reasons.append({"type": "pattern", "patterns": matching_patterns})
-        
+            matching_patterns = self._process_pattern_matches(rel_path, ignore_reasons)
+
         # Create complete ignore data
         ignore_data = {
             "is_ignored": len(ignore_reasons) > 0,
@@ -169,10 +230,10 @@ class IgnorePatternsHandler:
             "matched_patterns": matching_patterns,
             "binary_extension": Path(full_path).suffix.lower() if is_binary else None
         }
-        
+
         # Store complete data for all files (ignored or not)
         self._checked_files[rel_path] = ignore_data
-        
+
         return ignore_data
     
     def get_pattern_source(self, pattern: str) -> str:
