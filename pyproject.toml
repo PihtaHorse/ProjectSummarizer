@@ -2,7 +2,7 @@
 name = "projectsummarizer"
 version = "0.1.0"
 description = "A tool to summarize project files with tree view and extension analysis"
-authors = ["e_mamul <eugene@pufin.id>"]
+authors = ["e_mamul <eugenemamul@gmail.com>"]
 readme = "README.md"
 packages = [{include = "projectsummarizer", from = "src"}]
 
