@@ -69,7 +69,15 @@ def build_tree(
     return root
 
 
-def render_ascii_tree(root: FileSystemNode) -> str:
-    """Render ASCII tree with node statistics."""
+def render_ascii_tree(root: FileSystemNode, show_stats: bool = True) -> str:
+    """Render ASCII tree with optional node statistics.
+
+    Args:
+        root: Root node of the tree to render
+        show_stats: Whether to show statistics (size, tokens). Default: True
+
+    Returns:
+        ASCII tree representation as string
+    """
     plotter = TreePlotter()
-    return plotter.plot_ascii(root)
+    return plotter.plot_ascii(root, show_stats=show_stats)

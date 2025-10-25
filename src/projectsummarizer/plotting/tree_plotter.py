@@ -7,11 +7,12 @@ from projectsummarizer.files.tree.node import FileSystemNode
 class TreePlotter:
     """Plots filesystem trees in various formats."""
 
-    def plot_ascii(self, root: FileSystemNode) -> str:
-        """Plot tree in ASCII format with statistics.
+    def plot_ascii(self, root: FileSystemNode, show_stats: bool = True) -> str:
+        """Plot tree in ASCII format with optional statistics.
 
         Args:
             root: Root node of the tree to plot
+            show_stats: Whether to show statistics (size, tokens). Default: True
 
         Returns:
             ASCII tree representation as string
@@ -20,6 +21,9 @@ class TreePlotter:
 
         def format_stats(node: FileSystemNode) -> str:
             """Format statistics for a node using its own stats."""
+            if not show_stats:
+                return ""
+
             node_stats = node.stats()
             if not node_stats:
                 return ""

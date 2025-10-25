@@ -74,8 +74,8 @@ def main():
             content_processor=formatter.write_content if not args.only_structure else None,
         )
 
-        # Prepend tree structure at the beginning
-        tree_structure = render_ascii_tree(root)
+        # Prepend tree structure at the beginning (without stats for cleaner output)
+        tree_structure = render_ascii_tree(root, show_stats=False)
         formatter.prepend(f"Project Structure:\n{tree_structure}\n")
 
     # Log statistics

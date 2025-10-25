@@ -34,7 +34,7 @@ def main():
         token_models=args.count_tokens or [],
         filter_type=args.filter,
     )
-    print(render_ascii_tree(root))
+    print(render_ascii_tree(root, show_stats=True))
 
 
 if __name__ == "__main__":
