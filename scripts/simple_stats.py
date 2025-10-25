@@ -152,7 +152,7 @@ def main():
         # Get data for tables
         patterns_by_origin = discoverer.ignore_handler.get_active_patterns_by_origin()
         binary_extensions = discoverer.ignore_handler.get_binary_extensions()
-        pattern_matches = discoverer.ignore_handler._pattern_matches
+        pattern_matches = discoverer.ignore_handler.get_pattern_matches()
         checked_files = discoverer.ignore_handler.get_checked_files_data()
         
         # Create and display tables

@@ -246,7 +246,11 @@ class IgnorePatternsHandler:
     def get_binary_extensions(self) -> List[str]:
         """Get extensions that were blocked as binary."""
         return sorted(list(self._binary_extensions))
-    
+
+    def get_pattern_matches(self) -> Dict[str, int]:
+        """Get pattern match counts (pattern -> file count)."""
+        return dict(self._pattern_matches)
+
     def get_active_patterns_by_origin(self) -> Dict[str, List[str]]:
         """Get active patterns grouped by their origin."""
         active_patterns_by_origin = defaultdict(list)
