@@ -33,7 +33,7 @@ class StreamingTextFormatter:
             self.output_file.close()
             self.output_file = None
 
-    def write_content(self, relative_path: str, content: str) -> None:
+    def write_content(self, relative_path: str, content: str, metadata: dict = None) -> None:
         """Stream a single file's content to output.
 
         This is designed to be passed as content_processor to build_tree().
@@ -41,10 +41,29 @@ class StreamingTextFormatter:
         Args:
             relative_path: Relative path of the file
             content: File content
+            metadata: Optional dict containing file metadata (size, tokens, created, modified, etc.)
         """
         if content and self.output_file:
             self.file_count += 1
+
+            # Write file path
             self.output_file.write(f"{relative_path}:\n")
+
+            # Write metadata block if any metadata exists
+            if metadata:
+                created = metadata.get("created")
+                modified = metadata.get("modified")
+
+                # Only write metadata block if there's actual metadata to show
+                if created or modified:
+                    self.output_file.write("---\n")
+                    if created:
+                        self.output_file.write(f"created: {created}\n")
+                    if modified:
+                        self.output_file.write(f"modified: {modified}\n")
+                    self.output_file.write("---\n")
+
+            # Write file content
             self.output_file.write(f"{self.delimiter}\n")
             self.output_file.write(content)
             self.output_file.write(f"\n{self.delimiter}\n\n")

@@ -69,15 +69,16 @@ class FileDiscoverer(DateTimeMixin):
         self.content_registry.register(BinaryFileReader())
         self.content_registry.register(TextFileReader())  # Fallback reader
 
-    def discover(self, content_processor: Optional[Callable[[str, str], None]] = None) -> Dict[str, Dict]:
+    def discover(self, content_processor: Optional[Callable[[str, str, dict], None]] = None) -> Dict[str, Dict]:
         """Discover files and optionally process their content via a callback.
 
         This method reads each file exactly once and allows streaming processing
         of file contents without storing all content in memory.
 
         Args:
-            content_processor: Optional callback function(relative_path, content)
+            content_processor: Optional callback function(relative_path, content, metadata)
                              called for each non-binary file after reading.
+                             metadata dict contains: size, is_binary, flags, tokens, created, modified
                              If None, files are still read for token counting if token_counter is set.
 
         Returns:
@@ -86,6 +87,8 @@ class FileDiscoverer(DateTimeMixin):
             - size: int - file size in bytes
             - flags: set - file flags (e.g., 'binary')
             - tokens: dict - token counts (if token_counter provided)
+            - created: str - creation date in YYYY-MM-DD format (if include_dates is True)
+            - modified: str - modification date in YYYY-MM-DD format (if include_dates is True)
 
         Filter types:
         - "included": files that pass ignore patterns (default)
@@ -97,7 +100,7 @@ class FileDiscoverer(DateTimeMixin):
             files_data = discoverer.discover()
 
             # With callback (stream content)
-            def write_content(path, content):
+            def write_content(path, content, metadata):
                 output_file.write(f"\\n### {path}\\n{content}\\n")
             files_data = discoverer.discover(write_content)
         """
@@ -161,7 +164,7 @@ class FileDiscoverer(DateTimeMixin):
 
                 # Call content processor if provided and content was read
                 if content_processor and content:
-                    content_processor(relative_path, content)
+                    content_processor(relative_path, content, file_data)
 
                 files_data[relative_path] = file_data
 
