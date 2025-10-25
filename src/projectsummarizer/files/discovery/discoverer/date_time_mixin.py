@@ -32,10 +32,22 @@ class DateTimeMixin:
         """Check if the root directory is a git repository.
 
         Returns:
-            True if .git directory exists, False otherwise
+            True if git recognizes the directory as part of a work tree, False otherwise
         """
         if self._is_git_repo_cached is None:
-            self._is_git_repo_cached = (self.root / ".git").exists()
+            try:
+                result = subprocess.run(
+                    ["git", "rev-parse", "--is-inside-work-tree"],
+                    cwd=self.root,
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                self._is_git_repo_cached = (
+                    result.returncode == 0 and result.stdout.strip() == "true"
+                )
+            except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError):
+                self._is_git_repo_cached = False
         return self._is_git_repo_cached
 
     def _get_git_created_date(self, file_path: str) -> Optional[str]:
