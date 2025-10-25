@@ -55,8 +55,7 @@ def main():
         "--count_tokens",
         type=str,
         nargs="*",
-        choices=["gpt-4o", "claude-3-5-sonnet-20241022"],
-        help="Specify one or more models to count tokens for (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022')."
+        help="Specify one or more models to count tokens for. Supports OpenAI (e.g. 'gpt-4o'), Anthropic (e.g. 'claude-3-5-sonnet-20241022'), and Google (e.g. 'gemini-1.5-pro-002') models."
     )
     parser.add_argument(
         "--filter",

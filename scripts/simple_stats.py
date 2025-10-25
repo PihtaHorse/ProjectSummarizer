@@ -4,8 +4,13 @@
 import argparse
 import sys
 from prettytable import PrettyTable
-
 from projectsummarizer.files.discovery.discoverer import FileDiscoverer
+from dotenv import load_dotenv
+import logging
+
+
+load_dotenv()
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 
 def create_pattern_table(patterns_by_origin, pattern_matches):
