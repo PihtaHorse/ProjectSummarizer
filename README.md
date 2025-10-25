@@ -6,7 +6,7 @@ A local alternative to [gitingest](https://gitingest.com/) that consolidates pro
 
 While gitingest is a great web service, ProjectSummarizer runs entirely on your machine, giving you:
 - Full control. No uploading to external servers, unless you want to.
-- Token counting for multiple LLM models (OpenAI, Anthrophic, Google)
+- Token counting for multiple LLM models (OpenAI, Anthropic, Google)
 - Advanced filtering and ignore patterns
 
 Perfect for feeding codebases to LLM platforms like [Claude Projects](https://claude.ai/projects) or [ChatGPT Projects](https://chatgpt.com).
@@ -73,7 +73,7 @@ __all__ = [
 Main script that generates consolidated project summaries with optional token counting.
 
 ### [show_tree.py](docs/show_tree.md)
-Displays project structure as an ASCII tree with file sizes and statistics. Usefull for trimming project.
+Displays project structure as an ASCII tree with file sizes and statistics. Useful for trimming project.
 
 ### [simple_stats.py](docs/simple_stats.md)
 Shows file extension statistics and helps generate ignore patterns. Can give some insights on what you've blocked.
