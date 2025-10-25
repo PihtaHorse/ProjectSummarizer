@@ -47,16 +47,17 @@ def add_ignore_logic_args(parser: argparse.ArgumentParser) -> None:
         parser: ArgumentParser to add arguments to
     """
     parser.add_argument(
-        "--ignore_patterns",
+        "-I", "--ignore",
         type=str,
         default="",
-        help="Comma-separated list of additional patterns to ignore (added to defaults)"
+        dest="ignore",
+        help="Comma-separated patterns to ignore (e.g., '*.log,temp*'). Added to defaults unless --no_defaults is used."
     )
 
     parser.add_argument(
         "--no_defaults",
         action="store_true",
-        help="Don't use default ignore patterns, only use patterns from --ignore_patterns"
+        help="Don't use default ignore patterns, only use patterns from -I/--ignore"
     )
 
     parser.add_argument(

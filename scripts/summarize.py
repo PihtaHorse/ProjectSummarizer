@@ -49,8 +49,8 @@ def main():
 
     # Add user-specified patterns
     user_patterns = []
-    if args.ignore_patterns:
-        user_patterns.extend(args.ignore_patterns.split(","))
+    if args.ignore:
+        user_patterns.extend(args.ignore.split(","))
 
     # Create formatter - it owns the output file
     formatter = StreamingTextFormatter(

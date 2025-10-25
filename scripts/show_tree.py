@@ -23,7 +23,7 @@ def main():
 
     args = parser.parse_args()
 
-    user_patterns = [pattern for pattern in args.ignore_patterns.split(",") if pattern] if args.ignore_patterns else []
+    user_patterns = [pattern for pattern in args.ignore.split(",") if pattern] if args.ignore else []
 
     root = build_tree(
         args.directory,

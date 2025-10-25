@@ -133,8 +133,8 @@ def main():
     
     # Parse additional patterns
     user_patterns = []
-    if args.ignore_patterns:
-        user_patterns.extend(args.ignore_patterns.split(","))
+    if args.ignore:
+        user_patterns.extend(args.ignore.split(","))
     
     # Create discoverer with centralized ignore logic
     discoverer = FileDiscoverer(
