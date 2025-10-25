@@ -100,3 +100,20 @@ def add_token_counting_args(parser: argparse.ArgumentParser) -> None:
              "Supports OpenAI (e.g. 'gpt-4o'), Anthropic (e.g. 'claude-3-5-sonnet-20241022'), "
              "and Google (e.g. 'gemini-1.5-pro-002') models."
     )
+
+
+def add_sorting_args(parser: argparse.ArgumentParser) -> None:
+    """Add sorting arguments to parser.
+
+    Args:
+        parser: ArgumentParser to add arguments to
+    """
+    parser.add_argument(
+        "--sort-by",
+        type=str,
+        default="name",
+        dest="sort_by",
+        help="Sort files and directories by: 'name' (alphabetical, default), "
+             "'size' (largest first), or any token model name (e.g., 'gpt-4o'). "
+             "When using a token model name, it must be included in --count_tokens."
+    )

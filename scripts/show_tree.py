@@ -4,6 +4,7 @@ from projectsummarizer.cli import (
     add_file_selection_args,
     add_ignore_logic_args,
     add_token_counting_args,
+    add_sorting_args,
 )
 from dotenv import load_dotenv
 import logging
@@ -20,8 +21,17 @@ def main():
     add_file_selection_args(parser, directory_required=True)
     add_ignore_logic_args(parser)
     add_token_counting_args(parser)
+    add_sorting_args(parser)
 
     args = parser.parse_args()
+
+    # Validate sorting arguments - if sort_by is not "name" or "size", treat it as a token model
+    if args.sort_by not in ["name", "size"]:
+        if not args.count_tokens or args.sort_by not in args.count_tokens:
+            parser.error(
+                f"When sorting by token model '{args.sort_by}', "
+                f"it must be included in --count_tokens"
+            )
 
     user_patterns = [pattern for pattern in args.ignore.split(",") if pattern] if args.ignore else []
 
@@ -35,7 +45,7 @@ def main():
         filter_type=args.filter,
         level=args.level,
     )
-    print(render_ascii_tree(root, show_stats=True))
+    print(render_ascii_tree(root, show_stats=True, sort_by=args.sort_by))
 
 
 if __name__ == "__main__":

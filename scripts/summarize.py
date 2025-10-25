@@ -11,6 +11,7 @@ from projectsummarizer.cli import (
     add_file_selection_args,
     add_ignore_logic_args,
     add_token_counting_args,
+    add_sorting_args,
 )
 
 
@@ -27,6 +28,7 @@ def main():
     add_file_selection_args(parser, directory_required=True)
     add_ignore_logic_args(parser)
     add_token_counting_args(parser)
+    add_sorting_args(parser)
 
     # Script-specific arguments
     parser.add_argument(
@@ -46,6 +48,14 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Validate sorting arguments - if sort_by is not "name" or "size", treat it as a token model
+    if args.sort_by not in ["name", "size"]:
+        if not args.count_tokens or args.sort_by not in args.count_tokens:
+            parser.error(
+                f"When sorting by token model '{args.sort_by}', "
+                f"it must be included in --count_tokens"
+            )
 
     # Add user-specified patterns
     user_patterns = []
@@ -76,7 +86,7 @@ def main():
         )
 
         # Prepend tree structure at the beginning (without stats for cleaner output)
-        tree_structure = render_ascii_tree(root, show_stats=False)
+        tree_structure = render_ascii_tree(root, show_stats=False, sort_by=args.sort_by)
         formatter.prepend(f"Project Structure:\n{tree_structure}\n")
 
     # Log statistics
