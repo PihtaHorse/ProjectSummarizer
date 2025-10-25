@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Callable
 from projectsummarizer.files.discovery.ignore import IgnorePatternsHandler
 from projectsummarizer.files.discovery.binary_detector import BinaryDetector
+from projectsummarizer.contents.readers import ContentReaderRegistry, NotebookReader, BinaryFileReader, TextFileReader
 
 
 class FileDiscoverer:
@@ -52,6 +53,13 @@ class FileDiscoverer:
             include_binary=include_binary,
             binary_detector=binary_detector
         )
+
+        # Initialize content reader registry and register readers
+        # Order matters: more specific readers first, fallback last
+        self.content_registry = ContentReaderRegistry()
+        self.content_registry.register(NotebookReader())
+        self.content_registry.register(BinaryFileReader())
+        self.content_registry.register(TextFileReader())  # Fallback reader
 
     def discover(self, content_processor: Optional[Callable[[str, str], None]] = None) -> Dict[str, Dict]:
         """Discover files and optionally process their content via a callback.
@@ -116,24 +124,19 @@ class FileDiscoverer:
                 if ignore_data["is_binary"]:
                     file_data["flags"].add("binary")
 
-                # Read file once - for both token counting AND content processing
-                content = None
-                if not ignore_data["is_binary"]:
-                    try:
-                        with open(full_path, "r", encoding="utf-8") as file:
-                            content = file.read()
-                    except (OSError, UnicodeDecodeError):
-                        content = None
+                # Read file using the content reader registry
+                # This properly handles notebooks, binary files, and text files
+                content = self.content_registry.read(full_path, file_data=file_data)
 
-                # Add token counts if token_counter is provided
-                if self.token_counter and content is not None:
+                # Add token counts if token_counter is provided and content was read
+                if self.token_counter and content:
                     tokens = self.token_counter.count_tokens(content)
                     file_data["tokens"] = tokens
                 else:
                     file_data["tokens"] = {}
 
                 # Call content processor if provided and content was read
-                if content_processor and content is not None:
+                if content_processor and content:
                     content_processor(relative_path, content)
 
                 files_data[relative_path] = file_data
