@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, TYPE_CHECKING
 from projectsummarizer.files.discovery.ignore import IgnorePatternsHandler
-from projectsummarizer.files.discovery.binary_detector import BinaryDetector
+from projectsummarizer.files.discovery.binary_detectors import BinaryDetectorProtocol
 from projectsummarizer.files.discovery.discoverer.date_time_mixin import DateTimeMixin
 from projectsummarizer.contents.readers import ContentReaderRegistry, NotebookReader, BinaryFileReader, TextFileReader
 
@@ -37,7 +37,7 @@ class FileDiscoverer(DateTimeMixin):
         use_defaults: bool = True,
         read_ignore_files: bool = True,
         include_binary: bool = False,
-        binary_detector: Optional[BinaryDetector] = None,
+        binary_detector: Optional[BinaryDetectorProtocol] = None,
         token_counter = None,
         filter_type: str = "included",
         level: Optional[int] = None,

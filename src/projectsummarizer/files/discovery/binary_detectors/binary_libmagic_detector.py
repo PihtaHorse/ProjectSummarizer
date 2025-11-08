@@ -1,7 +1,7 @@
 import magic
 
 
-class BinaryDetector:
+class BinaryLibmagicDetector:
     """Content-based binary detector using libmagic.
 
     Relies on libmagic for accurate binary detection.
@@ -25,17 +25,17 @@ class BinaryDetector:
         """Check if data should be treated as binary using libmagic."""
         if not data:
             return False
-            
+
         try:
             # Check encoding first
             enc = self._magic_enc.from_buffer(data)
             if enc and enc != "binary":
                 return False
-                
+
             # Check MIME type
             mime = self._magic_mime.from_buffer(data) or ""
             low = mime.lower()
-            
+
             # Text types are not binary
             if (
                 low.startswith("text/")
@@ -46,12 +46,8 @@ class BinaryDetector:
                 or low == "application/x-empty"
             ):
                 return False
-                
-            # Everything else is considered binary
+
             return True
-            
+
         except Exception:
-            # If libmagic fails, assume binary for safety
             return True
-
-

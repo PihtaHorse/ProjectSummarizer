@@ -2,7 +2,10 @@ from pathlib import Path
 from typing import Iterable, List, Dict, Set, Optional
 from collections import defaultdict
 from pathspec import PathSpec
-from projectsummarizer.files.discovery.binary_detector import BinaryDetector
+from projectsummarizer.files.discovery.binary_detectors import (
+    BinaryDetectorFactory,
+    BinaryDetectorProtocol,
+)
 
 
 class IgnorePatternsHandler:
@@ -42,11 +45,11 @@ class IgnorePatternsHandler:
         use_defaults: bool = True,
         read_ignore_files: bool = True,
         include_binary: bool = False,
-        binary_detector: Optional[BinaryDetector] = None,
+        binary_detector: Optional[BinaryDetectorProtocol] = None,
     ) -> None:
         self.root = Path(root)
         self.include_binary = include_binary
-        self.binary_detector = binary_detector or BinaryDetector()
+        self.binary_detector = binary_detector or BinaryDetectorFactory.create()
         
         # Internal tracking - store complete data for all checked files
         self._checked_files: Dict[str, Dict] = {}   # file -> complete ignore_data

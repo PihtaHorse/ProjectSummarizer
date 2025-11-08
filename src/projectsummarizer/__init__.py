@@ -18,7 +18,8 @@ from projectsummarizer.files.tree.tree import FileSystemTree
 from projectsummarizer.files.discovery import (
     FileDiscoverer,
     IgnorePatternsHandler,
-    BinaryDetector,
+    BinaryDetectorFactory,
+    BinaryDetectorProtocol,
 )
 from projectsummarizer.tokens import TokenCounter
 from projectsummarizer.contents.readers import (
@@ -44,7 +45,8 @@ __all__ = [
     "FileSystemTree",
     "FileDiscoverer",
     "IgnorePatternsHandler",
-    "BinaryDetector",
+    "BinaryDetectorFactory",
+    "BinaryDetectorProtocol",
     "TokenCounter",
 
     # Content handling
