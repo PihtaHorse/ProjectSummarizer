@@ -95,13 +95,14 @@ class IgnorePatternsHandler:
             self._patterns_by_origin["default"] = list(self.DEFAULT_IGNORE_PATTERNS)
             pats += self._patterns_by_origin["default"]
         
-        self._patterns_by_origin["user"] = list(user)
-        pats += self._patterns_by_origin["user"]
-        
         if read_ignore_files:
             self._patterns_by_origin["gitignore"] = self._read_gitignore_patterns_with_prefixes()
             pats += self._patterns_by_origin["gitignore"]
         
+        # We always add user patterns last so they can override any other patterns
+        self._patterns_by_origin["user"] = list(user)
+        pats += self._patterns_by_origin["user"]
+
         return PathSpec.from_lines("gitwildmatch", pats)
 
     def _check_binary_file(self, full_path: str) -> tuple[bool, Optional[str]]:
