@@ -67,6 +67,8 @@ __all__ = [
 '''
 ```
 
+Need the summary on your clipboard instead of creating a file? Append `--clipboard` to the command and the generated output will be copied for you while the temporary file is cleaned up automatically.
+
 ## Scripts
 
 ### [summarize.py](docs/summarize.md)

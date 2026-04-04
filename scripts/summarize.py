@@ -3,6 +3,9 @@
 
 import argparse
 import logging
+from pathlib import Path
+
+import pyperclip
 from dotenv import load_dotenv
 
 from projectsummarizer.engine import build_tree, render_ascii_tree
@@ -35,6 +38,11 @@ def main():
     # Script-specific arguments
     parser.add_argument(
         "--output_file", type=str, default="summary.txt", required=False, help="Output file to write the contents"
+    )
+    parser.add_argument(
+        "--clipboard",
+        action="store_true",
+        help="Copy the generated summary to the clipboard instead of saving it to a file",
     )
     parser.add_argument(
         "--special_character",
@@ -79,8 +87,10 @@ def main():
         user_patterns.extend(args.ignore.split(","))
 
     # Create formatter - it owns the output file
+    output_path = Path(args.output_file)
+
     formatter = StreamingTextFormatter(
-        output_path=args.output_file,
+        output_path=str(output_path),
         delimiter=args.special_character,
         delimiter_replacement=args.delimiter_replacement
     )
@@ -110,7 +120,21 @@ def main():
     # Log statistics
     if not args.only_structure:
         logging.info(f"Total files processed: {formatter.file_count}")
-    logging.info(f"Output written to: {args.output_file}")
+
+    if args.clipboard:
+        try:
+            summary_text = output_path.read_text(encoding="utf-8")
+            pyperclip.copy(summary_text)
+        except FileNotFoundError:
+            logging.error("Cannot copy summary: %s does not exist", output_path)
+        except pyperclip.PyperclipException as exc:
+            logging.error("Failed to copy summary to clipboard: %s", exc)
+            logging.info(f"Output written to: {output_path}")
+        else:
+            output_path.unlink(missing_ok=True)
+            logging.info("Summary copied to clipboard")
+    else:
+        logging.info(f"Output written to: {output_path}")
 
     # Log token counts if requested
     if args.count_tokens:

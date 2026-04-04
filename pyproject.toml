@@ -18,6 +18,7 @@ anthropic = "^0.71.0"
 google-cloud-aiplatform = {extras = ["tokenization"], version = "^1.122.0"}
 # python-magic is optional - see [tool.poetry.extras] section below
 python-magic = {version = "^0.4.27", optional = true}
+pyperclip = "^1.11.0"
 
 
 [tool.poetry.extras]
