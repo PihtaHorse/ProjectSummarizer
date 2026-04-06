@@ -5,6 +5,21 @@ from pathlib import Path
 from typing import List
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--update-snapshots",
+        action="store_true",
+        default=False,
+        help="Regenerate golden snapshot files instead of comparing against them",
+    )
+
+
+@pytest.fixture
+def update_snapshots(request):
+    """True when --update-snapshots flag is passed."""
+    return request.config.getoption("--update-snapshots")
+
+
 def _create_gitignore(directory: str, patterns: List[str]) -> Path:
     """Create a .gitignore file in the specified directory with given patterns.
     
@@ -34,7 +49,7 @@ def _remove_gitignore(directory: str) -> None:
 @pytest.fixture
 def test_project_dir():
     """Fixture providing the test project directory path."""
-    return Path(__file__).parent / "test_project"
+    return Path(__file__).parent / "resources" / "test_project"
 
 
 @pytest.fixture

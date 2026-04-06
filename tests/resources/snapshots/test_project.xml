@@ -1,0 +1,64 @@
+<documents>
+<structure>
+<![CDATA[
+.
+├── folder_1/
+│   └── file_3.txt
+├── folder_2/
+│   └── file_4.txt
+├── file_1.txt
+├── file_2.txt
+└── README.md
+]]>
+</structure>
+<document index="1">
+<source>file_2.txt</source>
+<document_content>
+<![CDATA[
+file_2.txt
+
+
+]]>
+</document_content>
+</document>
+<document index="2">
+<source>README.md</source>
+<document_content>
+<![CDATA[
+README.md
+
+
+]]>
+</document_content>
+</document>
+<document index="3">
+<source>file_1.txt</source>
+<document_content>
+<![CDATA[
+file_1.txt
+
+
+]]>
+</document_content>
+</document>
+<document index="4">
+<source>folder_1/file_3.txt</source>
+<document_content>
+<![CDATA[
+folder_1/file_3.txt
+
+
+]]>
+</document_content>
+</document>
+<document index="5">
+<source>folder_2/file_4.txt</source>
+<document_content>
+<![CDATA[
+folder_2/file_4.txt
+
+
+]]>
+</document_content>
+</document>
+</documents>

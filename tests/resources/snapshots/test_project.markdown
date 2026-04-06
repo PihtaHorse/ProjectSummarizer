@@ -1,0 +1,53 @@
+# Project Structure
+
+```
+.
+├── folder_1/
+│   └── file_3.txt
+├── folder_2/
+│   └── file_4.txt
+├── file_1.txt
+├── file_2.txt
+└── README.md
+```
+
+## file_2.txt
+
+```txt
+file_2.txt
+
+
+```
+
+## README.md
+
+```md
+README.md
+
+
+```
+
+## file_1.txt
+
+```txt
+file_1.txt
+
+
+```
+
+## folder_1/file_3.txt
+
+```txt
+folder_1/file_3.txt
+
+
+```
+
+## folder_2/file_4.txt
+
+```txt
+folder_2/file_4.txt
+
+
+```
+
