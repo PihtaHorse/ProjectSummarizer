@@ -1,9 +1,11 @@
-"""Streaming formatter that writes output incrementally without loading all content in memory."""
+"""Streaming text formatter that writes output incrementally without loading all content in memory."""
 
 from typing import TextIO
 
+from projectsummarizer.contents.formatters.base import BaseFormatter
 
-class StreamingTextFormatter:
+
+class StreamingTextFormatter(BaseFormatter):
     """Streams formatted file content directly to a file.
 
     This formatter owns the output file. It opens the file, writes content as it's
@@ -48,15 +50,12 @@ class StreamingTextFormatter:
         if content and self.output_file:
             self.file_count += 1
 
-            # Write file path as markdown header
             self.output_file.write(f"## {relative_path}\n\n")
 
-            # Write metadata block if any metadata exists
             if metadata:
                 created = metadata.get("created")
                 modified = metadata.get("modified")
 
-                # Only write metadata block if there's actual metadata to show
                 if created or modified:
                     self.output_file.write("---\n")
                     if created:
@@ -65,45 +64,26 @@ class StreamingTextFormatter:
                         self.output_file.write(f"modified: {modified}\n")
                     self.output_file.write("---\n")
 
-            # Write file content
             self.output_file.write(f"{self.delimiter}\n")
-            # Replace delimiter in content to prevent breaking out of the block
             safe_content = content.replace(self.delimiter, self.delimiter_replacement)
             self.output_file.write(safe_content)
             self.output_file.write(f"\n{self.delimiter}\n\n")
 
-    def prepend(self, content: str) -> None:
-        """Prepend content to the beginning of the output file.
-
-        This method reads the current file content, prepends the new content,
-        and writes everything back. Use this sparingly as it requires
-        reading the entire file into memory.
+    def write_tree(self, tree: str) -> None:
+        """Prepend the project structure tree to the output.
 
         Args:
-            content: Content to prepend to the file
+            tree: ASCII tree representation of the project structure
         """
         if not self.output_file:
-            raise RuntimeError("Cannot prepend: file is not open")
+            raise RuntimeError("Cannot write tree: file is not open")
 
-        # Flush any pending writes
         self.output_file.flush()
 
-        # Read current content
-        with open(self.output_path, 'r', encoding='utf-8') as f:
+        with open(self.output_path, "r", encoding="utf-8") as f:
             current_content = f.read()
 
-        # Write prepended content
-        with open(self.output_path, 'w', encoding='utf-8') as f:
-            f.write(content)
+        with open(self.output_path, "w", encoding="utf-8") as f:
+            f.write(f"Project Structure:\n{self.delimiter}\n{tree}\n{self.delimiter}\n")
             if current_content:
-                f.write('\n' + current_content)
-
-    def __enter__(self):
-        """Context manager entry."""
-        self.open()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        self.close()
-        return False
+                f.write("\n" + current_content)

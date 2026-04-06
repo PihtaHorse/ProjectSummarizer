@@ -29,7 +29,11 @@ from projectsummarizer.contents.readers import (
     NotebookReader,
 )
 from projectsummarizer.contents.formatters import (
+    BaseFormatter,
     StreamingTextFormatter,
+    XMLFormatter,
+    MarkdownFormatter,
+    create_formatter,
 )
 from projectsummarizer.plotting import TreePlotter
 
@@ -56,7 +60,11 @@ __all__ = [
     "NotebookReader",
 
     # Formatters
+    "BaseFormatter",
     "StreamingTextFormatter",
+    "XMLFormatter",
+    "MarkdownFormatter",
+    "create_formatter",
 
     # Visualization
     "TreePlotter",

@@ -121,6 +121,22 @@ def add_sorting_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def add_format_args(parser: argparse.ArgumentParser) -> None:
+    """Add output format arguments to parser.
+
+    Args:
+        parser: ArgumentParser to add arguments to
+    """
+    parser.add_argument(
+        "--format",
+        type=str,
+        choices=["text", "xml", "markdown"],
+        default="text",
+        help="Output format: 'text' (default), 'xml' (recommended for LLMs, uses Anthropic's "
+             "<documents>/<document>/<source>/<document_content> schema), or 'markdown'"
+    )
+
+
 def add_date_tracking_args(parser: argparse.ArgumentParser) -> None:
     """Add date tracking arguments to parser.
 
