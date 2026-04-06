@@ -9,13 +9,14 @@ import pyperclip
 from dotenv import load_dotenv
 
 from projectsummarizer.engine import build_tree, render_ascii_tree
-from projectsummarizer.contents.formatters import StreamingTextFormatter
+from projectsummarizer.contents.formatters import create_formatter
 from projectsummarizer.cli import (
     add_file_selection_args,
     add_ignore_logic_args,
     add_token_counting_args,
     add_sorting_args,
     add_date_tracking_args,
+    add_format_args,
 )
 
 
@@ -34,6 +35,7 @@ def main():
     add_token_counting_args(parser)
     add_sorting_args(parser)
     add_date_tracking_args(parser)
+    add_format_args(parser)
 
     # Script-specific arguments
     parser.add_argument(
@@ -89,10 +91,11 @@ def main():
     # Create formatter - it owns the output file
     output_path = Path(args.output_file)
 
-    formatter = StreamingTextFormatter(
-        output_path=str(output_path),
+    formatter = create_formatter(
+        args.format,
+        str(output_path),
         delimiter=args.special_character,
-        delimiter_replacement=args.delimiter_replacement
+        delimiter_replacement=args.delimiter_replacement,
     )
 
     # Build tree and stream content in ONE pass
@@ -115,7 +118,7 @@ def main():
 
         # Prepend tree structure at the beginning (without stats for cleaner output)
         tree_structure = render_ascii_tree(root, show_stats=False, sort_by=args.sort_by)
-        formatter.prepend(f"Project Structure:\n{args.special_character}\n{tree_structure}\n{args.special_character}\n")
+        formatter.write_tree(tree_structure)
 
     # Log statistics
     if not args.only_structure:
