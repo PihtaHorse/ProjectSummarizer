@@ -3,11 +3,13 @@
 
 import argparse
 import logging
+import sys
 from pathlib import Path
 
 import pyperclip
 from dotenv import load_dotenv
 
+from projectsummarizer.call_logger import log_call
 from projectsummarizer.engine import build_tree, render_ascii_tree
 from projectsummarizer.contents.formatters import create_formatter
 from projectsummarizer.cli import (
@@ -144,6 +146,8 @@ def main():
         # Use tree's built-in aggregation (root.tokens automatically sums all child tokens)
         for model, token_count in root.tokens.items():
             logging.info(f"Total Token Count ({model}): {token_count}")
+
+    log_call(sys.argv, args.directory)
 
 
 if __name__ == "__main__":
