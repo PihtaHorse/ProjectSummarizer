@@ -116,5 +116,8 @@ Desktop.ini
 # Typical names for outupt files
 summary.txt
 
+# History log
+history.log
+
 # Claude files
 .claude/

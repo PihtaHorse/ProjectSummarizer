@@ -147,7 +147,7 @@ def main():
         for model, token_count in root.tokens.items():
             logging.info(f"Total Token Count ({model}): {token_count}")
 
-    log_call(sys.argv, args.directory)
+    log_call(sys.argv)
 
 
 if __name__ == "__main__":
